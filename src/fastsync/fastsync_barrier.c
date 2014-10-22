@@ -69,7 +69,7 @@ int fastsync_barrier_wait(fastsync_barrier *barrier)
 		gcc_barrier();
 		barrier->reset = barrier->seq + 1;
 		gcc_barrier();
-#ifdef FUTEX_BARRIER
+#ifdef _FUTEX_BARRIER_
 		// wake up other threads waiting at this barrier
 		if(barrier->total_count > 1)
 			sys_futex(&barrier->seq, FUTEX_WAKE_PRIVATE,
@@ -83,7 +83,7 @@ int fastsync_barrier_wait(fastsync_barrier *barrier)
 	if(count < barrier->total_count){
 		while (cur_seq == atomic_read(barrier->seq)) {
 			/* barrier->total_yield++; */
-#ifndef FUTEX_BARRIER
+#ifndef _FUTEX_BARRIER_
 			sched_yield(); // give up processor
 #else
 			// block thread itself

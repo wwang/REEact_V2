@@ -1,11 +1,12 @@
 CC=gcc
-CFLAGS=-c -Wall -D_REEACT_DEBUG_ -O3 -I../../common_toolx/ -fPIC -DFUTEX_BARRIER
+CFLAGS=-c -Wall -D_REEACT_DEBUG_ -O3 -I../../common_toolx/ -fPIC -D_FUTEX_BARRIER_ -D_REEACT_DEFAULT_POLICY_
 LDFLAGS= -L../../common_toolx/ -fPIC -shared
 LIBS= -lpthread -ldl
 REEACTSRC=reeact.c
 FASTSYNCSRC=./fastsync/fastsync_barrier.c 
 PTHHOOKSRC=./pthread_hooks/pthread_hooks.c ./pthread_hooks/pthread_create.c ./pthread_hooks/pthread_barrier.c
-SOURCES=$(REEACTSRC) $(FASTSYNCSRC) $(PTHHOOKSRC)
+POLICYSRC=./policies/reeact_policy.c
+SOURCES=$(REEACTSRC) $(FASTSYNCSRC) $(PTHHOOKSRC) $(POLICYSRC)
 OBJECTS=$(SOURCES:.c=.o)
 TARGET=libreeact.so
 LIBDIR=../lib/

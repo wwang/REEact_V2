@@ -13,6 +13,10 @@
 
 extern int (*real_pthread_create)(pthread_t *thread, const pthread_attr_t *attr,
 				  void *(*start_routine) (void *), void *arg);
-
+extern int (*real_pthread_barrier_init)(pthread_barrier_t *barrier, 
+					const pthread_barrierattr_t *attr,
+					unsigned count);
+extern int (*real_pthread_barrier_wait)(pthread_barrier_t *barrier);
+extern int (*real_pthread_barrier_destroy)(pthread_barrier_t *barrier);
 #endif
 
