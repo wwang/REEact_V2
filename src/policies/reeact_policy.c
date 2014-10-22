@@ -6,10 +6,13 @@
  *
  */
 
-
 #include "../reeact.h"
 #include "../pthread_hooks/pthread_hooks_originals.h"
 
+/*
+ * for flex-pthread policy
+ */
+#include "./flex_pthread/flex_pthread.h"
 
 /*
  * user policy initialization
@@ -17,13 +20,16 @@
 
 int reeact_policy_init(void *data)
 {
-#ifdef _REEACT_DEFAULT_POLICY
+#ifdef _REEACT_DEFAULT_POLICY_
 	struct reeact_data *d = (struct reeact_data*)data;
 	d->policy_data = NULL;
 
 	return 0;
+#elif _FLEX_PTHREAD_POLICY_
+	return flexpth_init(data);
 #else
 	// TODO: add user-policy here
+	printf("zzz\n");
 	return 0;
 #endif
 }
@@ -37,6 +43,9 @@ int reeact_policy_pthread_create(void *thread, void *attr,
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_create((pthread_t*)thread, (pthread_attr_t*)attr,
 				   start_routine, arg);
+#elif _FLEX_PTHREAD_POLICY_
+	return flexpth_create_thread((pthread_t*)thread, (pthread_attr_t*)attr,
+				     start_routine, arg);
 #else
 	// TODO: add user-policy here
 	return 0;
@@ -53,6 +62,10 @@ int reeact_policy_pthread_barrier_init(void *barrier, void *attr,
 	return real_pthread_barrier_init((pthread_barrier_t*)barrier,
 					 (pthread_barrierattr_t*)attr,
 					 count);
+#elif _FLEX_PTHREAD_POLICY_
+	return flexpth_barrier_init((pthread_barrier_t*)barrier,
+				    (pthread_barrierattr_t*)attr,
+				    count);
 #else
 	// TODO: add user-policy here
 	return 0;
@@ -63,6 +76,8 @@ int reeact_policy_pthread_barrier_wait(void *barrier)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_barrier_wait((pthread_barrier_t*)barrier);
+#elif _FLEX_PTHREAD_POLICY_
+	return flexpth_barrier_wait((pthread_barrier_t*)barrier);
 #else
 	// TODO: add user-policy here
 	return 0;
@@ -73,6 +88,8 @@ int reeact_policy_pthread_barrier_destroy(void *barrier)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_barrier_destroy((pthread_barrier_t*)barrier);
+#elif _FLEX_PTHREAD_POLICY_
+	return flexpth_barrier_destroy((pthread_barrier_t*)barrier);
 #else
 	// TODO: add user-policy here
 	return 0;
