@@ -33,9 +33,9 @@ pthread_barrier_wait_type real_pthread_barrier_wait;
 pthread_barrier_destroy_type real_pthread_barrier_destroy;
 
 /*
- * initialization function for the REEact pthread hooks.
+ * initialization function for REEact pthread hooks.
  */
-int reeact_pthread_hooks_init()
+int reeact_pthread_hooks_init(void *data)
 {
 	char *error = NULL;
 	int ret_val = 0;
@@ -67,4 +67,12 @@ int reeact_pthread_hooks_init()
 
  error:
 	return ret_val;
+}
+
+/*
+ * cleanup function for REEact pthread hooks
+ */
+int reeact_pthread_hooks_cleanup(void *data)
+{
+	return 0;
 }

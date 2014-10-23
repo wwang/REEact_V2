@@ -16,13 +16,27 @@
  * the "main" function of the program is executed.
  *
  * Input parameters:
- *     data: the data required by the user policy. By default a pointer to the
- *           "struct reeact_data" is passed;
+ *     data: the data used by the user policy. By default a pointer to the
+ *           "struct reeact_data" is passed.
  * Return values:
  *     0: success
  *     other: by user definition
  */
 int reeact_policy_init(void *data);
+
+/* 
+ * User policy cleanup function. This function is called when REEact is unloaded
+ * form a program.
+ * 
+ * Input parameters:
+ *     data: the data used by user policy. By default a pointer to the "struct
+ *     reeact_data" is passed.
+
+ * Return values:
+ *     0: success
+ *     other: by user definition
+ */
+int reeact_policy_cleanup(void *data);
 
 /*
  * pthread_create hook of the user policy.

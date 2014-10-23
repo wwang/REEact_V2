@@ -7,6 +7,7 @@
  */
 
 #include "../reeact.h"
+#include "../utils/reeact_utils.h"
 #include "../pthread_hooks/pthread_hooks_originals.h"
 
 /*
@@ -30,6 +31,19 @@ int reeact_policy_init(void *data)
 #else
 	// TODO: add user-policy here
 	printf("zzz\n");
+	return 0;
+#endif
+}
+
+/*
+ * user policy cleanup
+ */
+int reeact_policy_cleanup(void *data)
+{
+#ifdef _REEACT_DEFAULT_POLICY
+	return 0;
+#else
+	// TODO: add user-policy here
 	return 0;
 #endif
 }
