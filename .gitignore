@@ -14,7 +14,7 @@
 *.so.*
 
 # Executables
-
+sync
 
 # editor backups
 *~

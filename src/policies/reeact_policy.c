@@ -30,7 +30,6 @@ int reeact_policy_init(void *data)
 	return flexpth_init(data);
 #else
 	// TODO: add user-policy here
-	printf("zzz\n");
 	return 0;
 #endif
 }
@@ -42,6 +41,8 @@ int reeact_policy_cleanup(void *data)
 {
 #ifdef _REEACT_DEFAULT_POLICY
 	return 0;
+#elif _FLEX_PTHREAD_POLICY_
+	flexpth_cleanup(data);
 #else
 	// TODO: add user-policy here
 	return 0;

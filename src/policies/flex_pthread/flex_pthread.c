@@ -24,14 +24,14 @@ int flexpth_init(void *data)
 	DPRINTF("Initializing flex-pthread\n");
 
 	if(rh == NULL){
-		warnx("Flexpth init: wrong parameter.\n");
+		LOGERR("Flexpth init: wrong parameter.\n");
 		return 1;
 	}
 
 	fh = (struct flexpth_data*)malloc(sizeof(struct flexpth_data));
 
 	if(fh == NULL){
-		warn("Flexpth init: unable to create flex-pthead data: ");
+		LOGERRX("Flexpth init: unable to create flex-pthead data: ");
 		return 2;
 	}
 
@@ -50,12 +50,12 @@ int flexpth_cleanup(void *data)
 	DPRINTF("Cleaning up flex-pthread\n");
 
 	if(rh == NULL){
-		warnx("Flexpth cleanup: REEact data is NULL.\n");
+		LOGERR("Flexpth cleanup: REEact data is NULL.\n");
 		return 1;
 	}
 
-	if(rh->policy_data){
-		warnx("Flexpth cleanup: flex-pthead data is NULL");
+	if(rh->policy_data == NULL){
+		LOGERR("Flexpth cleanup: flex-pthead data is NULL");
 		return 2;
 	}
 
