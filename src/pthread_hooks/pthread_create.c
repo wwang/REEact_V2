@@ -10,12 +10,13 @@
 
 
 #include "../utils/reeact_utils.h"
-#include "pthread_hooks_originals.h"
+#include "../policies/reeact_policy.h"
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, 
 		   void *(*start_routine) (void *), void *arg)
 {
 	DPRINTF("pthread_create called\n");
 
-	return real_pthread_create(thread, attr, start_routine, arg);
+	return reeact_policy_pthread_create((void*)thread, (void*)attr, 
+					    start_routine, arg);
 }

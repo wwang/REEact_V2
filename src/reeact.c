@@ -20,18 +20,31 @@ struct reeact_data *reeact_handle = NULL;
  * initialization function for REEact
  */
 __attribute__ ((__constructor__)) 
-void reeact_init(void) {
+void reeact_init(void) 
+{
+	int ret_val = 0;
 	
         DPRINTF("reeact initialization\n");
 
 	// allocate data for reeact
-	reeact_handle = (struct reeact_data*)malloc(sizeof(struct reeact_data));
-
+	reeact_handle = (struct reeact_data*)calloc(1,
+						    sizeof(struct reeact_data));
+	if(reeact_handle == NULL){
+		LOGERRX("Unable to allocate memory for REEact data: ");
+		return;
+	}
+		
 	// pthread hooks initialization
-	reeact_pthread_hooks_init();
+	ret_val = reeact_pthread_hooks_init((void*)reeact_handle);
+	if(ret_val != 0)
+		LOGERR("Error initializing pthread hooks with error %d\n",
+		       ret_val);
 	
 	// user policy initialization
-	reeact_policy_init((void*)reeact_handle);
+	ret_val = reeact_policy_init((void*)reeact_handle);
+	if(ret_val != 0)
+		LOGERR("Error initializing user policy with error %d\n",
+		       ret_val);
 
 	return;
 }
@@ -40,8 +53,21 @@ void reeact_init(void) {
  * cleanup function for REEact
  */
 __attribute__ ((__destructor__)) 
-void reeact_cleanup(void) {
+void reeact_cleanup(void) 
+{
+	int ret_val;
+
         DPRINTF("reeact cleanup\n");
+
+	ret_val = reeact_policy_cleanup((void*)reeact_handle);
+	if(ret_val != 0)
+		LOGERR("Error cleaning up pthread hooks with error %d\n",
+		       ret_val);
+
+	ret_val = reeact_pthread_hooks_cleanup((void*)reeact_handle);
+	if(ret_val != 0)
+		LOGERR("Error cleaning up user policy with error %d\n",
+		       ret_val);
 
 	if(reeact_handle != NULL)
 		free(reeact_handle);
