@@ -10,7 +10,10 @@
 #define __REEACT_FRAMEWORK_H__
 
 struct reeact_data{
-	void * policy_data; // pointing to the user-specified policy data
+	int pid;
+	char *proc_name_short; // process name long
+	char *proc_name_long; // process base name (without path)
+	void *policy_data; // pointing to the user-specified policy data
 };
 
 #endif
