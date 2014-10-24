@@ -5,9 +5,12 @@
  * Author: Wei Wang <wwang@virginia.edu>
  */
 
-
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "reeact.h"
 #include "./utils/reeact_utils.h"
@@ -15,6 +18,35 @@
 #include "./policies/reeact_policy.h"
 
 struct reeact_data *reeact_handle = NULL;
+
+/*
+ * REEact initialization procedure for each process
+ *
+ * Input parameters:
+ *     rh: the pointer to the struct reeact_data of this process
+ * Return values:
+ *     0: success
+ *     1: rh is NULL
+ */
+int reeact_per_proc_init(struct reeact_data *rh)
+{
+	int pid;
+
+	pid = getpid();
+	
+	if(rh == NULL){
+		fprintf(stderr, "%d %s: reeact_per_proc_init: "
+			"REEact data is NULL\n", pid, 
+			program_invocation_short_name);
+		return 1;
+	}
+
+	rh->pid = pid;
+	rh->proc_name_short = program_invocation_short_name;
+	rh->proc_name_long = program_invocation_name;
+
+	return 0;
+}
 
 /*
  * initialization function for REEact
@@ -27,12 +59,14 @@ void reeact_init(void)
         DPRINTF("reeact initialization\n");
 
 	// allocate data for reeact
-	reeact_handle = (struct reeact_data*)calloc(1,
-						    sizeof(struct reeact_data));
+	reeact_handle = 
+		(struct reeact_data*)calloc(1, sizeof(struct reeact_data));
 	if(reeact_handle == NULL){
 		LOGERRX("Unable to allocate memory for REEact data: ");
 		return;
 	}
+
+	reeact_per_proc_init(reeact_handle);
 		
 	// pthread hooks initialization
 	ret_val = reeact_pthread_hooks_init((void*)reeact_handle);
