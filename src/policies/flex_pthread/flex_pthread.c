@@ -37,6 +37,11 @@ int flexpth_init(void *data)
 
 	rh->policy_data = (void*)fh;
 
+	/*
+	 * per component initialization
+	 */
+	flexpth_barrier_internal_init(data);
+
 	return 0;
 }
 
@@ -58,6 +63,11 @@ int flexpth_cleanup(void *data)
 		LOGERR("Flexpth cleanup: flex-pthead data is NULL");
 		return 2;
 	}
+
+	/*
+	 * per component cleanup
+	 */
+	flexpth_barrier_internal_cleanup(data);
 
 	free(rh->policy_data);
 
