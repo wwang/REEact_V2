@@ -15,9 +15,8 @@ typedef struct _fastsync_barrier{
 		unsigned long long reset;
 	};
 	unsigned int total_count; // total number of threads using this barrier
-	struct _fastsync_barrier *parent_d; // a pointer to the parent barrier, 
-                                            // used for tree-barrier
-	};
+	struct _fastsync_barrier *parent_bar; // pointer to the parent barrier,
+                                              // used for tree-barrier
 }fastsync_barrier;
 
 typedef struct _fastsync_barrier_attr{
