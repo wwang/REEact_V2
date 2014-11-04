@@ -49,6 +49,46 @@ int reeact_per_proc_init(struct reeact_data *rh)
 }
 
 /*
+ * Topology logging
+ */
+inline void reeact_log_topology(struct reeact_data *rh)
+{
+#ifdef _REEACT_DEBUG_
+	int i,j,k;
+	int node_id;
+	int *nodes, *cores;
+	int socket_cnt, node_cnt, core_cnt;
+	/*
+	 * Debug logging for topology detection
+	 */
+	DPRINTF("Socket count is %d, node per socket is %d, cores per node is "
+		"%d\n", rh->topology.socket_cnt, 
+		rh->topology.node_cnt, 
+		rh->topology.core_cnt);
+	
+	socket_cnt = rh->topology.socket_cnt;
+	node_cnt = rh->topology.node_cnt;
+	core_cnt = rh->topology.core_cnt;
+	nodes = rh->topology.nodes;
+	cores = rh->topology.cores;
+	for(i = 0; i < socket_cnt; i++){
+		fprintf(stderr, "Socket %d:\n", i);
+		for(j = 0; j < node_cnt; j++){
+			node_id = nodes[i*node_cnt+j];
+			fprintf(stderr, "\t Node %d:\n\t\t", node_id);
+			for(k = 0; k < core_cnt; k++){
+				fprintf(stderr, "%d ", 
+					cores[node_id * core_cnt + k]);
+			}
+			fprintf(stderr, "\n");	
+		}
+	}
+	
+	return;
+#endif
+}
+
+/*
  * initialization function for REEact
  */
 __attribute__ ((__constructor__)) 
@@ -66,7 +106,15 @@ void reeact_init(void)
 		return;
 	}
 
+	// per process initialization
 	reeact_per_proc_init(reeact_handle);
+	// determine processor topology
+	reeact_get_topology(&(reeact_handle->topology.nodes), 
+			    &(reeact_handle->topology.cores),
+			    &(reeact_handle->topology.socket_cnt),
+			    &(reeact_handle->topology.node_cnt),
+			    &(reeact_handle->topology.core_cnt));
+	reeact_log_topology(reeact_handle);
 		
 	// pthread hooks initialization
 	ret_val = reeact_pthread_hooks_init((void*)reeact_handle);
