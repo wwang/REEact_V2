@@ -1,5 +1,9 @@
 /*
  * Implementation of the barriers of the fast synchronization primitives.
+ * Note that fastsync_barrier supports tree-barrier. However, Because the 
+ * structure of the tree is application-specific, the construction of the tree
+ * is left for the user. This implementation only deals with the generic 
+ * algorithm of tree-barrier wait. 
  *
  * Author: Wei Wang <wwang@virginia.edu>
  */
