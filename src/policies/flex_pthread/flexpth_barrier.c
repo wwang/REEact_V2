@@ -33,10 +33,12 @@
 #include "../../fastsync/fastsync.h"
 #include "../reeact_policy.h"
 
+#include "flexpth_barrier.h"
+
 /*
  * The static list that represents the tree structure of the tree-barrier,
  * which in-turn represents the machine topology. The value of each element
- * is the index of the parent of this element
+ * is the index of the parent of this element (-1 means no parent).
  */
 struct _flexpth_bar_slist{
 	int *elements;
@@ -81,7 +83,8 @@ int flexpth_barrier_internal_init(void *data)
 	 * For leaf node i, its parent is: (let N be the number of nodes)
 	 * floor((i - (2 * N - 1)) / topo.core_cnt) + N - 1
 	 */
-	for(i = 0; i < (total_node_cnt*2-1); i++){
+	_bar_slist.elements[0] = -1;
+	for(i = 1; i < (total_node_cnt*2-1); i++){
 		// for non-leaf nodes
 		_bar_slist.elements[i] = (i-1)/2;
 	}
@@ -169,6 +172,7 @@ int flexpth_barrier_destroy(pthread_barrier_t *barrier)
 	
 	return ret_val;
 }
+
 int flexpth_barrier_init(pthread_barrier_t *barrier,
 			 const pthread_barrierattr_t *attr, unsigned count)
 {
@@ -178,7 +182,65 @@ int flexpth_barrier_init(pthread_barrier_t *barrier,
 	 */
 	fastsync_barrier *bar = malloc(sizeof(fastsync_barrier));
 	*((fastsync_barrier**)barrier) = bar;
+
+	struct flexpth_tree_barrier tbar;
+	flexpth_tree_barrier_init(&tbar, NULL, count);
 	
 	// initialize fast barrier
 	return fastsync_barrier_init(bar, NULL, count);
+
+}
+
+int flexpth_tree_barrier_init(struct flexpth_tree_barrier *tbar,
+			      struct flexpth_tree_barrier_attr *attr,
+			      unsigned count)
+{
+	fastsync_barrier *barriers;
+	int i;
+
+	if(tbar == NULL){
+		LOGERR("tbar is NULL\n");
+		return 1;
+	}
+
+	if(_bar_slist.elements == NULL){
+		LOGERR("flex-pthread barrier is not initialized");
+		return 2;
+	}
+		
+	// create an array of barriers
+	barriers = (fastsync_barrier*)calloc(_bar_slist.len, 
+					     sizeof(fastsync_barrier));
+	if(barriers == NULL){
+		LOGERRX("error allocating memory: ");
+		return 3;
+	}
+	
+	// set the parent pointers of the barriers
+	for(i = 1; i < _bar_slist.len; i++){
+		barriers[i].parent_bar = barriers + _bar_slist.elements[i];
+	}
+
+	// set parent of the root barrier to NULL and total_count to count
+	barriers[0].parent_bar = NULL;
+	barriers[0].total_count = count;
+       
+#ifdef _REEACT_DEBUG_
+	/*
+	 * log the tree barrier array
+	 */
+	DPRINTF("Tree barrier created, array is:\n");
+	for(i = 0; i < _bar_slist.len; i++){
+		fprintf(stderr, "\t element %d (%p) parent %p count %d\n",
+			i, barriers + i, barriers[i].parent_bar, 
+			barriers[i].total_count);
+	}
+	fprintf(stderr, "\n");
+#endif
+	
+	// assign the newly created array to tbar
+	tbar->barriers = (void*)barriers;
+	tbar->barrier_cnt = _bar_slist.len;
+	
+	return 0;
 }

@@ -9,8 +9,10 @@
 #include <err.h>
 
 #include "../../reeact.h"
-#include "flex_pthread.h"
 #include "../../utils/reeact_utils.h"
+
+#include "flex_pthread.h"
+#include "flexpth_barrier.h"
 
 
 /*

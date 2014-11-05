@@ -1,5 +1,6 @@
 /*
- * Declarations of flex-pthread data types and functions
+ * Declarations of flex-pthread data types and functions. Only exported 
+ * functions are declared here.
  *
  * Author: Wei Wang <wwang@virginia.edu>
  * 
@@ -54,19 +55,14 @@ int flexpth_create_thread(pthread_t *thread, pthread_attr_t *attr,
 
 /*
  * Barrier synchronization functions for flex-pthread. 
- * flexpth_barrier_internal_init should be called with flexpth_init to
- * acquire information about the machine topology form REEact main
  * 
  * Input parameters:
- *      data: a pointer to REEact data (struct reeact_data *)
  *      barrier: the barrier to wait at
  *      attr: attribute of the barrier
  *      count: the number of threads that use this barrier
  * Return values:
  *      0: success
  */
-int flexpth_barrier_internal_init(void *data);
-int flexpth_barrier_internal_cleanup(void *data);
 int flexpth_barrier_wait(pthread_barrier_t *barrier);
 int flexpth_barrier_destroy(pthread_barrier_t *barrier);
 int flexpth_barrier_init(pthread_barrier_t *barrier, 

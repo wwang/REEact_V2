@@ -10,10 +10,12 @@
 #include "../utils/reeact_utils.h"
 #include "../pthread_hooks/pthread_hooks_originals.h"
 
+#ifdef _FLEX_PTHREAD_POLICY_
 /*
  * for flex-pthread policy
  */
 #include "./flex_pthread/flex_pthread.h"
+#endif
 
 /*
  * user policy initialization
