@@ -419,14 +419,14 @@ int main(int argc, char * argv[])
 		if(ret_val != 0)
 			err(1, "Error creating new thread:");
 
-		// pin the thread to a core
-		c = t % params.core_cnt;
-		CPU_ZERO(&core_id);
-		CPU_SET(params.cores[c], &core_id);
-		ret_val = pthread_setaffinity_np(threads[t], sizeof(cpu_set_t), 
-						 &core_id);
-		if(ret_val != 0)
-			err(2, "Error pinning new thread:");
+		/* // pin the thread to a core */
+		/* c = t % params.core_cnt; */
+		/* CPU_ZERO(&core_id); */
+		/* CPU_SET(params.cores[c], &core_id); */
+		/* ret_val = pthread_setaffinity_np(threads[t], sizeof(cpu_set_t),  */
+		/* 				 &core_id); */
+		/* if(ret_val != 0) */
+		/* 	err(2, "Error pinning new thread:"); */
 	}
 
 	// let all threads start

@@ -12,7 +12,9 @@
 #include <pthread.h>
 
 struct flexpth_data{
-	int dummy;
+	void *thread_keeper; // a handle to thread keeper component, also
+                             // a pointer to struct flexpth_thread_keeper
+	void *core_list; // the list of cores to use.
 };
 
 /*
@@ -45,8 +47,9 @@ int flexpth_cleanup(void *data);
  * Input parameters:
  *     thread, attr, start_routine, arg: see the manual of pthread_create
  *
- * Return values:
+ * Return values: for compatibility issue, same as pthread_create
  *     0: success
+ *     
  * 
  */
 int flexpth_create_thread(pthread_t *thread, pthread_attr_t *attr,

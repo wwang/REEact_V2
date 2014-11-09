@@ -13,7 +13,8 @@
 
 #include "flex_pthread.h"
 #include "flexpth_barrier.h"
-
+#include "flexpth_thread_keeper.h"
+#include "flexpth_env_var.h"
 
 /*
  * flex-pthread initialization
@@ -42,7 +43,9 @@ int flexpth_init(void *data)
 	/*
 	 * per component initialization
 	 */
+	flexpth_parse_env_vars(data);
 	flexpth_barrier_internal_init(data);
+	flexpth_thread_keeper_init(data);
 
 	return 0;
 }
@@ -70,6 +73,8 @@ int flexpth_cleanup(void *data)
 	 * per component cleanup
 	 */
 	flexpth_barrier_internal_cleanup(data);
+	flexpth_thread_keeper_cleanup(data);
+	flexpth_env_vars_cleanup(data);
 
 	free(rh->policy_data);
 
