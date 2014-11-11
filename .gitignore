@@ -1,9 +1,6 @@
 # Object files
 *.o
 
-# Precompiled Headers
-.depend
-
 # Libraries
 *.a
 *.la
@@ -19,3 +16,6 @@
 # editor backups
 *~
 \#*\#
+
+# automatically generated header dependency file
+*.d
