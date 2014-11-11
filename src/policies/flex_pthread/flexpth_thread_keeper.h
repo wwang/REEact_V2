@@ -9,6 +9,8 @@
 #ifndef __FLEX_PTHREAD_KEEPER_H__
 #define __FLEX_PTHREAD_KEEPER_H__
 
+#include "flexpth_common_defs.h"
+
 /*
  * structure for holding thread information
  */
@@ -24,7 +26,6 @@ struct flexpth_thread_info{
 /*
  * structure for holding thread function information
  */
-# define FLEX_PTHREAD_MAX_CORE_CNT 64 // the maximum number of cores to handle
 struct flexpth_thr_func_info{
 	void *func; // the address of the thread function
 	int thread_per_core[FLEX_PTHREAD_MAX_CORE_CNT]; // how many threads of
@@ -33,6 +34,7 @@ struct flexpth_thr_func_info{
 	int thread_cnt; // the total number of threads using this function
 	int fidx; // 
 };
+
 /*
  * structure for holding all thread-related information
  */
@@ -100,6 +102,24 @@ int flexpth_keeper_add_thread(void *data, int core_id, void* func,
  *     3: unable to find thread function info
  */
 int flexpth_keeper_remove_thread(void *data, int tidx);
+
+
+/*
+ * Get the next function's information
+ * Input parameters:
+ *     data: the REEact handle (struct reeact_data)
+ *     search_handle: an object for keeping track of currently enumerated 
+ *                    functions; if NULL, then return the first function
+ * Output parameters:
+ *     search_handle: same as above, if returned handle is NULL, no more 
+ *                    functions to enumerate
+ *     finfo: the information of the object.
+ * Return values:
+ *     0: success
+ *     1: wrong parameters
+ */
+int flexpth_keeper_get_next_func(void *data, void **search_handle, 
+				 struct flexpth_thr_func_info **finfo);
 
 /*
  * Change the running core of a thread

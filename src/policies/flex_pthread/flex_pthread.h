@@ -15,6 +15,7 @@ struct flexpth_data{
 	void *thread_keeper; // a handle to thread keeper component, also
                              // a pointer to struct flexpth_thread_keeper
 	void *core_list; // the list of cores to use.
+	void *barriers; // pointer to all barriers struct flexpth_all_tree_bars
 };
 
 /*

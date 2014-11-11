@@ -19,6 +19,7 @@
 
 #include "flex_pthread.h"
 #include "flexpth_thread_keeper.h"
+#include "flexpth_barrier.h"
 
 
 #define FLEXPTH_THREAD_TABLE_LEN  1024
@@ -156,6 +157,8 @@ int flexpth_keeper_add_thread(void *data, int core_id, void* func,
 		save_val_simple_hashx(k->funcs, (long long)func, 1, 0, 
 				      (void*)finfo);
 		k->func_cnt++;
+		// update barriers
+		flexpth_barrier_new_func(data, (void *)finfo);
 	}
 
 	// create a new record for the thread
@@ -168,12 +171,16 @@ int flexpth_keeper_add_thread(void *data, int core_id, void* func,
 	tinfo->tidx = cur_tidx++;
 	tinfo->core_id = core_id;
 	tinfo->func = func;
+	tinfo->fidx = finfo->fidx;
 	save_val_simple_hashx(k->threads, tinfo->tidx, 1, 0, (void*)tinfo);
 	k->thread_cnt++;
 
 	// add thread information to function information
 	finfo->thread_cnt++;
 	finfo->thread_per_core[core_id]++;
+
+	// update barriers
+	flexpth_barrier_new_thread(data, (void *)tinfo);
 
 	return 0;
 }
@@ -291,3 +298,28 @@ int flexpth_keeper_thread_migrate(void *data, int tidx, int core_id)
 
 	return 0;
 }
+
+/*
+ * Get the next function's information
+ */
+int flexpth_keeper_get_next_func(void *data, void **search_handle, 
+				 struct flexpth_thr_func_info **finfo)
+{
+	struct reeact_data *rh = (struct reeact_data*)data;
+	struct flexpth_data *fh;
+	struct flexpth_thread_keeper *keeper;
+	
+	if(data == NULL || search_handle == NULL || finfo == NULL){
+		LOGERR("wrong parameters: data (%p), search_handle (%p) and "
+		       "finfo (%p)\n", data, search_handle, finfo);
+		return 1;
+	}
+	fh = (struct flexpth_data*)rh->policy_data;
+	keeper = (struct flexpth_thread_keeper*)fh->thread_keeper;
+	
+	get_next_simple_hashx(keeper->funcs, 1, search_handle, NULL, 
+			      (void**)finfo);
+
+	return 0;
+}
+
