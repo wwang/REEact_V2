@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -Wall -D_REEACT_DEBUG_ -O3 -I../../common_toolx/ -fPIC -D_FUTEX_BARRIER_ -D_FLEX_PTHREAD_POLICY_ -I ~/WorkingDisk/Tools/usr/include/
+CFLAGS=-c -Wall -I../../common_toolx/ -fPIC -D_FUTEX_BARRIER_ -D_FLEX_PTHREAD_POLICY_ -I ~/WorkingDisk/Tools/usr/include/
 LDFLAGS= -L../../common_toolx/ -L ~/WorkingDisk/Tools/usr/lib/ -fPIC -shared
 LIBS= -lpthread -ldl -lhwloc -lcommontoolx
 REEACTSRC=reeact.c ./utils/reeact_log.c ./utils/reeact_topology.c
@@ -7,29 +7,45 @@ FASTSYNCSRC=./fastsync/fastsync_barrier.c
 PTHHOOKSRC=./pthread_hooks/pthread_hooks.c ./pthread_hooks/pthread_create.c ./pthread_hooks/pthread_barrier.c
 POLICYSRC=./policies/reeact_policy.c ./policies/flex_pthread/flexpth_barrier.c ./policies/flex_pthread/flexpth_create.c ./policies/flex_pthread/flex_pthread.c ./policies/flex_pthread/flexpth_thread_keeper.c ./policies/flex_pthread/flexpth_env_var.c
 SOURCES=$(REEACTSRC) $(FASTSYNCSRC) $(PTHHOOKSRC) $(POLICYSRC)
-OBJECTS=$(SOURCES:.c=.o)
+BUILD=build
+OBJECTS=$(addprefix $(BUILD)/, $(SOURCES:.c=.o))
+DEPDIR=.depends
+DEPENDS=$(addprefix $(DEPDIR)/, $(SOURCES:.c=.d))
 TARGET=libreeact.so
 LIBDIR=../lib/
 
 
-all: $(TARGET)
+all: debug
+
+debug: CFLAGS+=-D_REEACT_DEBUG_ -g
+debug: $(TARGET)
+
+release: CFLAGS+=-O3
+release: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
-%.o: %.c
+$(BUILD)/%.o: %.c
+	mkdir -p $(@D)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
+<<<<<<< HEAD
 	rm $(OBJECTS) $(TARGET)  .depend
 
 # for header file dependencies
 depend: .depend	
+=======
+	rm $(OBJECTS) $(TARGET) $(DEPENDS)
+	rm -r $(BUILD) $(DEPDIR)
+>>>>>>> master
 
-.depend: $(SOURCES)	
-	rm -f ./.depend	
-	$(CC) $(CFLAGS) -MM $^ > ./.depend;
+#for header file dependencies
+$(DEPDIR)/%.d: %.c
+	@set -e; rm -f $@; mkdir -p $(@D); \
+	$(CC) -MM $(CFLAGS) -MT "$(BUILD)/$*.o $@" $< > $@; \
 
-include .depend
+include $(DEPENDS)
 
-.PHONY: all clean depend
+.PHONY: all clean debug release
