@@ -31,15 +31,8 @@ $(BUILD)/%.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-<<<<<<< HEAD
-	rm $(OBJECTS) $(TARGET)  .depend
-
-# for header file dependencies
-depend: .depend	
-=======
 	rm $(OBJECTS) $(TARGET) $(DEPENDS)
 	rm -r $(BUILD) $(DEPDIR)
->>>>>>> master
 
 #for header file dependencies
 $(DEPDIR)/%.d: %.c
