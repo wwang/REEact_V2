@@ -67,7 +67,7 @@ int flexpth_parse_core_list(struct reeact_data *rh)
 	/*
 	 * used all cores
 	 */
-	if(env == NULL || ret_val == 3){
+	if(env == NULL || ret_val == 3 || cl->core_cnt == 0){
 		int i;
 		cl->core_cnt = rh->topology.core_cnt * rh->topology.node_cnt *
 			rh->topology.socket_cnt;

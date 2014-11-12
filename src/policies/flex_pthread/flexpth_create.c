@@ -83,7 +83,7 @@ void * flexpth_thread_wrapper(void *arg)
 	/*
 	 * set the barrier index thread local storage
 	 */
-	barrier_idx = self->fidx << 32 | self->core_id;	
+	barrier_idx = (((long long)self->fidx) << 32) | self->core_id;	
 		
 	/*
 	 * execute the real thread function
