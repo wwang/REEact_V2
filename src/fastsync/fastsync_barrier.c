@@ -115,7 +115,7 @@ int fastsync_barrier_wait(fastsync_barrier *barrier)
  */
 int fastsynt_barrier_wait_interproc(fastsync_barrier *barrier, int inc_count)
 {
-	int ret_val;
+	int ret_val = 0;
 
 	int cur_seq = atomic_read(barrier->seq);
 	// atomic add and fetch
