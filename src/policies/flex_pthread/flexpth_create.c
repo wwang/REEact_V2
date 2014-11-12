@@ -39,6 +39,10 @@ typedef void* (*thread_function)(void *arg);
  * be relying on the gs or fs segment register
  */
 __thread struct flexpth_thread_info* self;
+/*
+ * 64-bit integer, first half is the fidx, second hard is core_id
+ */
+__thread long long barrier_idx; 
 
 /*
  * New threads are created to run this wrapper function first. This wrapper
@@ -75,6 +79,11 @@ void * flexpth_thread_wrapper(void *arg)
 	if(ret_val != 0)
 		LOGERRX("Unable to pin %d'th thread (%d) to core %d\n", 
 			self->tidx, self->tid);
+
+	/*
+	 * set the barrier index thread local storage
+	 */
+	barrier_idx = self->fidx << 32 | self->core_id;	
 		
 	/*
 	 * execute the real thread function

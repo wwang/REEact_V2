@@ -17,6 +17,7 @@ typedef struct _fastsync_barrier{
 	unsigned int total_count; // total number of threads using this barrier
 	struct _fastsync_barrier *parent_bar; // pointer to the parent barrier,
                                               // used for tree-barrier
+	int padding[11]; // make a barrier occupy a cache line to avoid false sharing
 }fastsync_barrier;
 
 typedef struct _fastsync_barrier_attr{

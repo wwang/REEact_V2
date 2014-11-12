@@ -346,7 +346,16 @@ int flexpth_tree_barrier_init(void *data,
 		/*
 		 * let the root of this tree point to the global root
 		 */
-		tmp = (fastsync_barrier*)((*tbar)->func_tbars[finfo->fidx][0]);
+		/* tmp = (fastsync_barrier*)((*tbar)->func_tbars[finfo->fidx][0]); */
+		/* tmp->parent_bar = root; */
+		/*
+		 * given that I use binary tree, let the first two children in 
+		 * in the binary directly associate with the global root to 
+		 * save one level of barrier
+		 */
+		tmp = (fastsync_barrier*)((*tbar)->func_tbars[finfo->fidx][1]);
+		tmp->parent_bar = root;
+		tmp = (fastsync_barrier*)((*tbar)->func_tbars[finfo->fidx][2]);
 		tmp->parent_bar = root;
 		
 		/*
@@ -406,7 +415,16 @@ int flexpth_barrier_new_func(void *data, void *finfo_in)
 		/*
 		 * let the root of this tree point to the global root
 		 */
-		tmp = (fastsync_barrier*)(tbar->func_tbars[finfo->fidx][0]);
+		/* tmp = (fastsync_barrier*)(tbar->func_tbars[finfo->fidx][0]); */
+		/* tmp->parent_bar = tbar->root; */
+		/*
+		 * given that I use binary tree, let the first two children in 
+		 * in the binary directly associate with the global root to 
+		 * save one level of barrier
+		 */
+		tmp = (fastsync_barrier*)(tbar->func_tbars[finfo->fidx][1]);
+		tmp->parent_bar = tbar->root;
+		tmp = (fastsync_barrier*)(tbar->func_tbars[finfo->fidx][2]);
 		tmp->parent_bar = tbar->root;
 	}
 
@@ -612,16 +630,18 @@ int flexpth_barrier_init(pthread_barrier_t *barrier,
 }
 
 extern __thread struct flexpth_thread_info* self; // information of this thread
+extern __thread long long barrier_idx; 
 int flexpth_barrier_wait(pthread_barrier_t *barrier)
 {	
 	struct flexpth_tree_barrier *tbar;
 	fastsync_barrier *bar;
+	int fidx, core_id;
 		
 	if(barrier == NULL)
 		return EINVAL;
 
 	tbar = *(struct flexpth_tree_barrier**)barrier;
-	
+
 	switch(tbar->status){
 	case FLEXPTH_BARRIER_STATE_INVALID:
 		/*
@@ -637,8 +657,12 @@ int flexpth_barrier_wait(pthread_barrier_t *barrier)
 		/*
 		 * the barrier is ready with all threads created
 		 */
-		bar = (fastsync_barrier*)tbar->func_tbars[self->fidx]
-			[_core_to_list_map[self->core_id]];
+		/* bar = (fastsync_barrier*)tbar->func_tbars[self->fidx] */
+		/* 	[_core_to_list_map[self->core_id]]; */
+		fidx = barrier_idx >> 32;
+		core_id = barrier_idx & 0x00000000ffffffff;
+		bar = (fastsync_barrier*)tbar->func_tbars[fidx]
+			[_core_to_list_map[core_id]];
 		return fastsync_barrier_wait(bar);
 	default:
 		/*
