@@ -17,6 +17,7 @@
 #include "../../reeact.h"
 #include "../../utils/reeact_utils.h"
 
+#include "flexpth_common_defs.h"
 #include "flex_pthread.h"
 #include "flexpth_thread_keeper.h"
 #include "flexpth_barrier.h"
@@ -188,7 +189,8 @@ int flexpth_keeper_add_thread(void *data, int core_id, void* func,
 /*
  * Remove the information of a thread
  */
-int flexpth_keeper_remove_thread(void *data, int tidx)
+int flexpth_keeper_remove_thread(void *data, int tidx,
+				 struct flexpth_thread_info *tinfo_in)
 {
 	struct reeact_data *rh = (struct reeact_data*)data;
 	struct flexpth_data *fh = (struct flexpth_data*)rh->policy_data;
@@ -201,8 +203,8 @@ int flexpth_keeper_remove_thread(void *data, int tidx)
 	if(data == NULL){
 		LOGERR("input thread data is NULL\n");
 		return 1;
-	}
-	
+	}	
+
 	k = (struct flexpth_thread_keeper*)fh->thread_keeper;
 	if(k == NULL || k->threads == NULL  || k->funcs == NULL){
 		LOGERRX("thread keeper (%p) or thread table (%p) or "
@@ -212,13 +214,17 @@ int flexpth_keeper_remove_thread(void *data, int tidx)
 	}
 
 	// locate the thread record for 
-	ret_val = get_val_simple_hashx(k->threads, tidx, 1, NULL, 
-				       (void**)&tinfo);
-	if(ret_val == 2){
-		// thread does not exists
-		LOGERR("thread %d not exists\n", tidx);
-		return 2;
+	if(tinfo_in == NULL){
+		ret_val = get_val_simple_hashx(k->threads, tidx, 1, NULL, 
+					       (void**)&tinfo);
+		if(ret_val == 2){
+			// thread does not exists
+			LOGERR("thread %d not exists\n", tidx);
+			return 2;
+		}
 	}
+	else
+		tinfo = tinfo_in;
 	
 	func = tinfo->func;
 	// locate the function record for 
@@ -231,12 +237,13 @@ int flexpth_keeper_remove_thread(void *data, int tidx)
 	}
 
 	// remove thread from function info
-        finfo->thread_cnt--;
-	finfo->thread_per_core[tinfo->core_id]--;
+        atomic_sub(&finfo->thread_cnt, -1);
+	atomic_sub(finfo->thread_per_core + tinfo->core_id, -1);
 
-	// remove thread form thread table
-	remove_val_simple_hashx(k->threads, tidx);
-	k->thread_cnt--;
+	
+	// TODO: remove thread form thread table
+	/* remove_val_simple_hashx(k->threads, tidx); */
+	/* k->thread_cnt--; */
       
 
 	return 0;

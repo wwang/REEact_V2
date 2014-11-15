@@ -96,6 +96,7 @@ void * flexpth_thread_wrapper(void *arg)
 	 * thread finished
 	 */
 	DPRINTF("%d'th thread (tid %d) finished\n", self->tidx, self->tid);
+	flexpth_keeper_remove_thread((void*)reeact_handle, self->tidx, self);
 
 	/*
 	 * TODO: remove thread from thread keeper, make thread keeper thread-safe

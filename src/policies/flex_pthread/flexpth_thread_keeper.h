@@ -80,7 +80,8 @@ int flexpth_thread_keeper_cleanup(void *data);
  *     data: the REEact handle (struct reeact_data)
  *     core_id: the id of the core to run thread
  *     func: the thread function address
- * Output parameters
+ * Output parameters:
+ *     tinfo: the newly created thread information
  * Return values:
  *     0: success
  *     1: wrong parameters
@@ -95,13 +96,15 @@ int flexpth_keeper_add_thread(void *data, int core_id, void* func,
  * Input parameters:
  *     data: the REEact handle (struct reeact_data)
  *     tidx: thread index
+ *     tinfo: thread information; if NULL tidx is used to locate the thread
  * Return values:
  *     0: success
  *     1: wrong parameters
  *     2: unable to find thread info
  *     3: unable to find thread function info
  */
-int flexpth_keeper_remove_thread(void *data, int tidx);
+int flexpth_keeper_remove_thread(void *data, int tidx, 
+				 struct flexpth_thread_info *tinfo);
 
 
 /*
@@ -134,6 +137,5 @@ int flexpth_keeper_get_next_func(void *data, void **search_handle,
  *     3: unable to find thread function info
  */
 int flexpth_keeper_thread_migrate(void *data, int tidx, int core_id);
-
 
 #endif
