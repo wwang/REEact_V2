@@ -35,6 +35,7 @@ typedef struct _cmd_params{ // data structure for command line parameters
 	int debug; // enable debug output
         int verbose; // enable verbose output
 	int all_start; // the predicate that all threads can start
+	int sync_type; // the type of synchronization
 }cmd_params;
 
 typedef struct _thr_params{ // data structure for thread function parameters
@@ -46,8 +47,9 @@ typedef struct _thr_params{ // data structure for thread function parameters
 	unsigned long long total_iters; // total iterations for this thread
 	unsigned long long extra_trial; // there is an extra trial for this 
                                         // thread
-	pthread_cond_t * all_start; // "all-start" condition for all threads
-	pthread_mutex_t * cond_mtx; // the mutex for the "all-start" condition
+	pthread_cond_t *all_start; // "all-start" condition for all threads
+	pthread_mutex_t *cond_mtx; // the mutex for the "all-start" condition
+	pthread_mutex_t *mutex; // the mutex for synchronization test
 }thr_params;
 
 /*
@@ -67,6 +69,7 @@ int init_parameters(cmd_params * p)
 	p->debug = 0;
 	p->verbose = 0;
 	p->all_start = 0;
+	p->sync_type = 0;
 
 	return 0;
 }
@@ -93,6 +96,7 @@ int print_parameters(cmd_params *p)
 	printf("\t per-barrier iterations: %llu\n", p->bar_iters);
 	printf("\t library name: %s\n", p->lib_name);
 	printf("\t function name: %s\n", p->func_name);
+	printf("\t synchronization type: %d\n", p->sync_type);
 
 	return 0;
 }
@@ -124,6 +128,9 @@ int print_usage()
 		"\t the name of the library with the working function\n"
 		" -f FUNCTION --func=FUNCTION\n"
 		"\t the name of the working function\n"
+		" -s SYNC_TYPE --sync=SYNC_TYPE\n"
+		"\t the type of synchronization: 0: barrier, 1: mutex, 2: "
+		"conditional variable; default 0\n"
 		"  -d, --debug\n"
 		"\t enable debug output\n"
 		"  -v, --verbose\n"
@@ -150,6 +157,7 @@ int parse_parameters(int argc, char * argv[], cmd_params *p)
 		{"debug", no_argument, 0, 1007},
 		{"verbose", no_argument, 0, 1008},
 		{"help", no_argument, 0, 1009},
+		{"sync", required_argument, 0, 1010},
 		{0, 0, 0, 0},
 	};
 
@@ -157,7 +165,7 @@ int parse_parameters(int argc, char * argv[], cmd_params *p)
 	int opt = 0;
 	int ret_val = 0;
 	
-	while((opt = getopt_long(argc, argv, "t:c:m:n:l:f:dvh", long_params,
+	while((opt = getopt_long(argc, argv, "t:c:m:n:l:f:s:dvh", long_params,
 				 &long_index)) != -1){
 		switch (opt) {
 		case 't':
@@ -202,6 +210,10 @@ int parse_parameters(int argc, char * argv[], cmd_params *p)
 		case 1009:
 			print_usage();
 			exit(0);
+		case 's':
+		case 1010:
+			p->sync_type = atoi(optarg);
+			break;
 		default:
 			goto error;
 			break;
@@ -283,7 +295,7 @@ void * thread_func(void * thr_args)
 	unsigned long long trials_to_do = 0;
 	thr_params * args = (thr_params*)thr_args;
 	cmd_params * p = args->cmd_params;
-	unsigned long long int barrier_waited = 0;
+	unsigned long long int sync_called = 0;
 	struct timeval start, end;
 	
 	args->ret_val = 0;
@@ -300,10 +312,11 @@ void * thread_func(void * thr_args)
 	ret_val = pthread_barrier_wait(args->sync_point);
 
 	// wait for the "all-start" signal from the parent
-	ret_val = pthread_mutex_lock(args->cond_mtx);
+	//ret_val = pthread_mutex_lock(args->cond_mtx);
 	while(!p->all_start)
-		ret_val = pthread_cond_wait(args->all_start, args->cond_mtx);
-	ret_val = pthread_mutex_unlock(args->cond_mtx);
+		asm volatile("pause\n": : :"memory");
+	//	ret_val = pthread_cond_wait(args->all_start, args->cond_mtx);
+	//ret_val = pthread_mutex_unlock(args->cond_mtx);
 	
 	printf("Worker thread %d start\n", args->tidx);
 	// get start time 
@@ -317,11 +330,21 @@ void * thread_func(void * thr_args)
 		// do the iteration
 		args->ret_val += p->func((void*)&(trials_to_do));
 		trials_done += p->bar_iters;
-		// wait for we are all finished
-		barrier_waited++;
-		ret_val = pthread_barrier_wait(args->sync_point);
-		if(ret_val != 0 && ret_val != PTHREAD_BARRIER_SERIAL_THREAD) 
-			warn("Error waiting for barrier");
+		// do the synchronization
+		switch(p->sync_type){
+		case 1:
+			ret_val = pthread_mutex_lock(args->mutex);
+			sync_called++;
+			ret_val = pthread_mutex_unlock(args->mutex);
+			break;
+		case 0:
+		default:
+			sync_called++;
+			ret_val = pthread_barrier_wait(args->sync_point);
+			if(ret_val != 0 && 
+			   ret_val != PTHREAD_BARRIER_SERIAL_THREAD) 
+				warn("Error waiting for barrier");
+		}
 	}
 
 	// do the extra trial
@@ -331,9 +354,9 @@ void * thread_func(void * thr_args)
 	// get finish time
 	gettimeofday(&end, NULL);
 
-	printf("Worker thread %d finished with result %llu (%llu barriers "
-	       "waited) in %f seconds.\n", args->tidx, args->ret_val, 
-	       barrier_waited, get_elapsed_time(&start, &end));
+	printf("Worker thread %d finished with result %llu (%llu sync "
+	       "called) in %f seconds.\n", args->tidx, args->ret_val, 
+	       sync_called, get_elapsed_time(&start, &end));
 	
 	return NULL;
 }
@@ -370,16 +393,18 @@ int open_worker_func(cmd_params * p)
 int main(int argc, char * argv[])
 {
 	cmd_params params;
-	int t,c;
+	int t;
+	//int c;
 	pthread_t threads[MAX_THREADS];
 	thr_params thr_args[MAX_THREADS];
 	int ret_val;
-	cpu_set_t core_id;
+	//cpu_set_t core_id;
 	pthread_barrier_t sync_point;
 	unsigned long long thr_trials, extra_trials;
 	struct timeval start, end;
 	pthread_cond_t all_start  = PTHREAD_COND_INITIALIZER;
 	pthread_mutex_t cond_mtx = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 	
 	// read in command line parameters
 	init_parameters(&params);
@@ -405,8 +430,9 @@ int main(int argc, char * argv[])
 		thr_args[t].cmd_params = &params;
 		thr_args[t].sync_point = &sync_point;
 		thr_args[t].all_start = &all_start;
-		thr_args[t].cond_mtx = & cond_mtx;
+		thr_args[t].cond_mtx = &cond_mtx;
 		thr_args[t].total_iters = thr_trials;
+		thr_args[t].mutex = &mtx;
 		if(extra_trials > 0){
 			thr_args[t].extra_trial = 1;
 			extra_trials--;
@@ -430,10 +456,10 @@ int main(int argc, char * argv[])
 	}
 
 	// let all threads start
-	ret_val = pthread_mutex_lock(&cond_mtx);
+	//ret_val = pthread_mutex_lock(&cond_mtx);
 	params.all_start = 1;
-	ret_val = pthread_mutex_unlock(&cond_mtx);
-	ret_val = pthread_cond_broadcast(&all_start);
+	//ret_val = pthread_mutex_unlock(&cond_mtx);
+	//ret_val = pthread_cond_broadcast(&all_start);
 
 	// get the start time
 	gettimeofday(&start, NULL);
