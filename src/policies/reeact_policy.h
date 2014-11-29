@@ -67,5 +67,21 @@ int reeact_policy_pthread_barrier_init(void *barrier, void *attr,
 int reeact_policy_pthread_barrier_wait(void *barrier);
 int reeact_policy_pthread_barrier_destroy(void *barrier);
 
+/*
+ * pthread mutex hooks of the user policy.
+ * 
+ * Input parameters (see the pthread_mutex manuals for more info):
+ *     mutex: by default a "pthread_mutex_t*" type
+ *     attr: by default a "pthread_mutexattr_t*" type
+ * Return values:
+ *     same as corresponding pthread_mutex functions or by user definition
+ */
+int reeact_policy_pthread_mutex_init(void *mutex, void *attr);
+int reeact_policy_pthread_mutex_lock(void *mutex);
+int reeact_policy_pthread_mutex_trylock(void *mutex);
+int reeact_policy_pthread_mutex_timedlock(void *mutex, void *abs_timeout);
+int reeact_policy_pthread_mutex_unlock(void *mutex);
+int reeact_policy_pthread_mutex_consistent(void *mutex);
+int reeact_policy_pthread_mutex_destroy(void *mutex);
 
 #endif

@@ -19,6 +19,12 @@
 /* Atomic add, returning the value before the addition */
 #define atomic_fadd(P, V) __sync_fetch_and_add((P), (V))
 
+/* Atomic sub, returning the new value after the subtract */
+#define atomic_subf(P, V) __sync_sub_and_fetch((P), (V))
+
+/* Atomic sub, returning the value before the subtract */
+#define atomic_fsub(P, V) __sync_fetch_and_sub((P), (V))
+
 /* Force a read of the variable */
 #define atomic_read(V) (*(volatile typeof(V) *)&(V))
 
@@ -31,6 +37,9 @@
 /* atomic compare and exchange */
 #define atomic_cmpxchg(P, OLD_V, NEW_V) \
 	__sync_val_compare_and_swap((P), (OLD_V), (NEW_V))
+/* atomic compare and exchange with bool returns */
+#define atomic_bool_cmpxchg(P, OLD_V, NEW_V) \
+	__sync_bool_compare_and_swap((P), (OLD_V), (NEW_V))
 
 /* atomic "or", returning the new value after "or" */
 #define atomic_orf(P,V) __sync_or_and_fetch((P), (V))
