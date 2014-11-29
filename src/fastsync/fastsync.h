@@ -5,6 +5,58 @@
 #ifndef __FAST_SYNC_H__
 #define __FAST_SYNC_H__
 
+
+/*
+ * BEGIN: Atomic operations and other common definitions
+ */
+
+/* Compile Barrier */
+#define gcc_barrier() asm volatile("": : :"memory")
+
+/* Atomic add, returning the new value after the addition */
+#define atomic_addf(P, V) __sync_add_and_fetch((P), (V))
+
+/* Atomic add, returning the value before the addition */
+#define atomic_fadd(P, V) __sync_fetch_and_add((P), (V))
+
+/* Force a read of the variable */
+#define atomic_read(V) (*(volatile typeof(V) *)&(V))
+
+/* Spin lock hint for the processor */
+#define spinlock_hint() asm volatile("pause\n": : :"memory")
+
+/* atomic exchange */
+#define atomic_xchg(P, V) __sync_lock_test_and_set((P), (V))
+
+/* atomic compare and exchange */
+#define atomic_cmpxchg(P, OLD_V, NEW_V) \
+	__sync_val_compare_and_swap((P), (OLD_V), (NEW_V))
+
+/* atomic "or", returning the new value after "or" */
+#define atomic_orf(P,V) __sync_or_and_fetch((P), (V))
+
+/* atomic "or", returning the new value before "or" */
+#define atomic_for(P,V) __sync_fetch_and_or((P), (V))
+
+/* atomic "and", returning the new value after "and" */
+#define atomic_andf(P,V) __sync_and_and_fetch((P), (V))
+
+/* atomic "and", returning the new value before "and" */
+#define atomic_fand(P,V) __sync_fetch_and_and((P), (V))
+
+/* A wrapper for the FUTEX system call; similar to the following function */
+/* static long sys_futex(void *addr1, int op, int val1, struct timespec *timeout, void *addr2, int val3) */
+#define sys_futex(addr1, op, val1, timeout, addr2, val3) \
+	syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3)
+
+/*
+ * END: Atomic operations and other common definitions
+ */
+
+/*
+ * BEGIN: fastsync barrier declarations
+ */
+
 typedef struct _fastsync_barrier{
 	union{
 		struct{
@@ -65,26 +117,89 @@ int fastsynt_barrier_wait_interproc(fastsync_barrier *barrier, int inc_count);
  */
 int fastsync_barrier_destroy(fastsync_barrier *barrier);
 
-
 /*
- * Atomic operations
+ * END: fastsync barrier declarations
  */
 
-/* Compile Barrier */
-#define gcc_barrier() asm volatile("": : :"memory")
 
-/* Atomic add, returning the new value after the addition */
-#define atomic_add(P, V) __sync_add_and_fetch((P), (V))
+/*
+ * BEGIN: fastsync mutex declarations
+ */
 
-/* Atomic add, returning the value before the addition */
-#define atomic_xadd(P, V) __sync_fetch_and_add((P), (V))
+typedef union _fastsync_mutex{	
+	/* 
+	 * each mutex occupies a whole cache line to avoid false sharing
+	 */
+	char padding[64]; 
+	struct {
+		/*
+		 * state of the mutex:
+		 * 0b00 (0): unlocked and un-contended
+		 * 0b01 (1): locked and un-contended
+		 * 0b10 (2): unlocked and contended
+		 * 0b11 (3): locked and contended
+		 *
+		 * in sort: last bit means locked or not, second to the last
+		 * means contended or not
+		 */
+		int state;
+		/* parent mutex */
+		union _fastsync_mutex *parent;
+	};
+}fastsync_mutex;
 
-/* Force a read of the variable */
-#define atomic_read(V) (*(volatile typeof(V) *)&(V))
+typedef struct _fastsync_mutex_attr{
+	fastsync_mutex *parent; /* parent mutex */
+}fastsync_mutex_attr;
 
-/* A wrapper for the FUTEX system call; similar to the following function */
-/* static long sys_futex(void *addr1, int op, int val1, struct timespec *timeout, void *addr2, int val3) */
-#define sys_futex(addr1, op, val1, timeout, addr2, val3) \
-	syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3)
+
+/*
+ * Initialized a fastsync mutex object:
+ * Input parameters:
+ *     mutex: the mutex to initialized
+ *     attr: mutex attributes
+ * Return value:
+ *     0: success
+ *     1: mutex is NULL
+ */
+int fastsync_mutex_init(fastsync_mutex *mutex, const fastsync_mutex_attr *attr);
+
+/*
+ * Lock a fastsync mutex; block if lock not acquired. This function first lock
+ * the mutex at core-level. If succeed, it proceeds to lock at higher levels.
+ * Input parameters:
+ *     mutex: the mutex to lock
+ * Return value:
+ *     0: success
+ *     1: mutex is NULL
+ */
+int fastsync_mutex_lock(fastsync_mutex *mutex);
+/*
+ * inter-processor version of the mutex lock
+ */ 
+int fastsync_mutex_lock_interproc(fastsync_mutex *mutex);
+
+/*
+ * Unlock a fastsync mutex. This function first unlock the mutex at core level,
+ * if there is any thread waiting on this core, the mutex is transferred to this
+ * thread.
+ * Input parameters:
+ *     mutex: the mutex to lock
+ * Return value:
+ *     0: success
+ *     1: mutex is NULL
+ *     2: error with futex
+ */
+int fastsync_mutex_unlock(fastsync_mutex *mutex);
+/*
+ * Unlock a fastsync mutex at inter-processor level; threads waiting at this 
+ * level is released first (even if another tree at different tree-node waits
+ * for this mutex before anyone on this particular tree-node.
+ */ 
+int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex);
+
+/*
+ * END: fastsync mutex declarations
+ */
 
 #endif

@@ -58,7 +58,7 @@ int fastsync_barrier_wait(fastsync_barrier *barrier)
 
 	int cur_seq = atomic_read(barrier->seq);
 	// atomic add and fetch
-	int count = atomic_add(&(barrier->waiting), 1);
+	int count = atomic_addf(&(barrier->waiting), 1);
 	
 	// done waiting for the barrier
 	if(count == barrier->total_count){
@@ -119,7 +119,7 @@ int fastsynt_barrier_wait_interproc(fastsync_barrier *barrier, int inc_count)
 
 	int cur_seq = atomic_read(barrier->seq);
 	// atomic add and fetch
-	int count = atomic_add(&(barrier->waiting), inc_count);
+	int count = atomic_addf(&(barrier->waiting), inc_count);
 
 		// done waiting for the barrier
 	if(count == barrier->total_count){
@@ -142,6 +142,7 @@ int fastsynt_barrier_wait_interproc(fastsync_barrier *barrier, int inc_count)
 	if(count < barrier->total_count){
 		while (cur_seq == atomic_read(barrier->seq)) {
 			/* spin */
+			spinlock_hint();
 		}
 		// normal wait success
 		ret_val = 0;
