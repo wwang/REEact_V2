@@ -93,3 +93,78 @@ int reeact_policy_pthread_barrier_destroy(void *barrier)
 #endif
 }
 
+/*
+ * pthread_mutex hooks
+ */
+
+int reeact_policy_pthread_mutex_init(void *mutex, void *attr)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_init((pthread_mutex_t*)mutex,
+				       (pthread_mutexattr_t*)attr);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_policy_pthread_mutex_lock(void *mutex)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_lock((pthread_mutex_t*)mutex);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_policy_pthread_mutex_trylock(void *mutex)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_trylock((pthread_mutex_t*)mutex);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_policy_pthread_mutex_timedlock(void *mutex, void *abs_timeout)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_timedlock((pthread_mutex_t*)mutex,
+					    (struct timespec*)abs_timeout);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_policy_pthread_mutex_unlock(void *mutex)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_unlock((pthread_mutex_t*)mutex);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_policy_pthread_mutex_consistent(void *mutex)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_consistent((pthread_mutex_t*)mutex);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_policy_pthread_mutex_destroy(void *mutex)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_mutex_destroy((pthread_mutex_t*)mutex);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
