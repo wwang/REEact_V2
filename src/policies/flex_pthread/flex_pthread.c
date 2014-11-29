@@ -46,6 +46,7 @@ int flexpth_init(void *data)
 	flexpth_parse_env_vars(data);
 	flexpth_barrier_internal_init(data);
 	flexpth_thread_keeper_init(data);
+	flexpth_mutex_internal_init(data);
 
 	return 0;
 }
@@ -72,6 +73,7 @@ int flexpth_cleanup(void *data)
 	/*
 	 * per component cleanup
 	 */
+	flexpth_mutex_interal_cleanup(data);
 	flexpth_barrier_internal_cleanup(data);
 	flexpth_thread_keeper_cleanup(data);
 	flexpth_env_vars_cleanup(data);

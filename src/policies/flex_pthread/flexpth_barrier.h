@@ -17,7 +17,7 @@ struct flexpth_tree_barrier_attr{
 };
 
 /*
- * data structure that holding all the per-thread function tree barriers. 
+ * data structure that holds all the per-thread function tree barriers. 
  * 
  * The reason of giving each thread function a copy of its own barrier:
  *

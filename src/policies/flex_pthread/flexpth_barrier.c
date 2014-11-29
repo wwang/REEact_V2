@@ -22,7 +22,9 @@
  *    creating many tree-barrier instances. With static linked list, I can 
  *    simply create a template of the tree barrier before hand. When creating
  *    a new tree-barrier, all I have to do is a memcpy on the template.
+ *
  * Author: Wei Wang <wwang@virginia.edu>
+ *
  */
 
 #define _GNU_SOURCE
@@ -52,11 +54,6 @@
  * which in-turn represents the machine topology. The value of each element
  * is the index of the parent of this element (SLIST_NULL means no parent).
  */
-#define FLEXPTH_BAR_SLIST_NULL -1
-struct _flexpth_bar_slist{
-	int *elements;
-	int len;
-};
 struct _flexpth_bar_slist _bar_slist = {0};
 
 /*
@@ -501,7 +498,7 @@ int flexpth_barrier_first_wait(struct flexpth_tree_barrier *tbar)
 	fastsync_barrier *barrier = (fastsync_barrier*)tbar->root;
 	int cur_seq = atomic_read(barrier->seq);
 	// atomic add and fetch
-	int count = atomic_add(&(barrier->waiting), 1);
+	int count = atomic_addf(&(barrier->waiting), 1);
 	
 	// done waiting for the barrier
 	if(count == barrier->total_count){
