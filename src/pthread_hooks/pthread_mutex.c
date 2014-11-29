@@ -39,7 +39,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 
 int pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
-	return reeact_policy_pthread_mutex_destory((void*)mutex);
+	return reeact_policy_pthread_mutex_destroy((void*)mutex);
 }
 
 int pthread_mutex_consistent(pthread_mutex_t *mutex)
