@@ -16,6 +16,7 @@
 
 #include "../../reeact.h"
 #include "../../utils/reeact_utils.h"
+#include "../../fastsync/fastsync.h"
 
 #include "flexpth_common_defs.h"
 #include "flex_pthread.h"
@@ -237,8 +238,8 @@ int flexpth_keeper_remove_thread(void *data, int tidx,
 	}
 
 	// remove thread from function info
-        atomic_subf(&finfo->thread_cnt, -1);
-	atomic_subf(finfo->thread_per_core + tinfo->core_id, -1);
+        atomic_subf(&finfo->thread_cnt, 1);
+	atomic_subf(finfo->thread_per_core + tinfo->core_id, 1);
 
 	
 	// TODO: remove thread form thread table

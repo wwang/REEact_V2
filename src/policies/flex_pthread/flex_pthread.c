@@ -13,6 +13,7 @@
 
 #include "flex_pthread.h"
 #include "flexpth_barrier.h"
+#include "flexpth_mutex.h"
 #include "flexpth_thread_keeper.h"
 #include "flexpth_env_var.h"
 
@@ -73,7 +74,7 @@ int flexpth_cleanup(void *data)
 	/*
 	 * per component cleanup
 	 */
-	flexpth_mutex_interal_cleanup(data);
+	flexpth_mutex_internal_cleanup(data);
 	flexpth_barrier_internal_cleanup(data);
 	flexpth_thread_keeper_cleanup(data);
 	flexpth_env_vars_cleanup(data);

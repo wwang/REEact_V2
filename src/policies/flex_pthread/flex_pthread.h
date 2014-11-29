@@ -90,7 +90,8 @@ int flexpth_mutex_unlock(pthread_mutex_t *mutex);
 int flexpth_mutex_trylock(pthread_mutex_t *mutex);
 int flexpth_mutex_timedlock(pthread_mutex_t *mutex, 
 			   const struct timespec *abs_timeout);
-int flexpth_mutex_destroy(pthread_barrier_t *mutex);
+int flexpth_mutex_destroy(pthread_mutex_t *mutex);
+int flexpth_mutex_consistent(pthread_mutex_t *mutex);
 
 
 

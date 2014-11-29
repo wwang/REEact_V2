@@ -260,7 +260,7 @@ int flexpth_mutex_unlock(pthread_mutex_t *m)
 	return fastsync_mutex_unlock(fastm);
 }
 
-int flexpth_mutex_destroy(pthread_barrier_t *m)
+int flexpth_mutex_destroy(pthread_mutex_t *m)
 {
 	struct flexpth_mutex *mutex = (struct flexpth_mutex*)m;
 
@@ -290,6 +290,14 @@ int flexpth_mutex_timedlock(pthread_mutex_t *m,
 {
 	// TODO: implement the mutex timed lock
 	LOGERR("FLEXPTH mutex timed lock not implemented\n");
+
+	return EINVAL;
+}
+
+int flexpth_mutex_consistent(pthread_mutex_t *m)
+{
+	// TODO: implement the mutex consistent
+	LOGERR("FLEXPTH mutex consistent not implemented\n");
 
 	return EINVAL;
 }

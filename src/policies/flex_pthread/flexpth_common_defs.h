@@ -11,12 +11,6 @@
 #define FLEXPTH_MAX_BARRIERS   32 // maximum allowed barriers
 #define FLEXPTH_MAX_THREAD_FUNCS 32 // maximum allowed thread functions
 
-/* Atomic add, returning the new value after the addition */
-#define atomic_subf(P, V) __sync_add_and_fetch((P), (V))
-
-/* Atomic add, returning the value before the addition */
-#define atomic_fsub(P, V) __sync_fetch_and_add((P), (V))
-
 /*
  * The static list that represents the tree structure of the used by tree
  * barrier and tree mutex, which in-turn represents the machine topology. The 

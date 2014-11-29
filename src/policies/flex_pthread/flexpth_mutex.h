@@ -4,8 +4,8 @@
  * Author: Wei Wang <wwang@virginia.ed>
  */
 
-#ifndef __FLEX_PTHREAD_BARRIER_H__
-#define __FLEX_PTHREAD_BARRIER_H__
+#ifndef __FLEX_PTHREAD_MUTEX_H__
+#define __FLEX_PTHREAD_MUTEX_H__
 
 #include "flexpth_common_defs.h"
 
