@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-c -Wall -I../../common_toolx/ -fPIC -D_FUTEX_BARRIER_ -D_REEACT_DEFAULT_POLICY_
-LDFLAGS= -L../../common_toolx/ -L ~/WorkingDisk/Tools/usr/lib/ -fPIC -shared
+LDFLAGS= -L../../common_toolx/ -fPIC -shared
 LIBS= -lpthread -ldl -lcommontoolx
 REEACTSRC=reeact.c ./utils/reeact_log.c ./utils/reeact_topology.c
 FASTSYNCSRC=./fastsync/fastsync_barrier.c ./fastsync/fastsync_mutex.c
