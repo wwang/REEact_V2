@@ -24,6 +24,7 @@
 #include "../../utils/reeact_utils.h"
 #include "../../fastsync/fastsync.h"
 #include "../reeact_policy.h"
+#include "../../pthread_hooks/pthread_hooks_originals.h"
 
 #include "flex_pthread.h"
 #include "flexpth_mutex.h"
@@ -196,13 +197,14 @@ int flexpth_mutex_init_critical(struct flexpth_mutex *mutex)
 	/* try to lock this mutex for initialization */
 	if(cur_magic != FLEXPTH_MUTEX_MAGIC_NUMBER1 &&
 	   cur_magic != FLEXPTH_MUTEX_MAGIC_NUMBER2 &&
-	   __sync_bool_compare_and_swap(&(mutex->magic_number), cur_magic, 
-					FLEXPTH_MUTEX_MAGIC_NUMBER2)){
+	   atomic_bool_cmpxchg(&(mutex->magic_number), cur_magic, 
+			       FLEXPTH_MUTEX_MAGIC_NUMBER2)){
 		// initialized the mutex
 		flexpth_tree_mutex_init((void*)reeact_handle, 
-					  &(mutex->tmutex), NULL);
+					&(mutex->tmutex), NULL);
 		mutex->magic_number = FLEXPTH_MUTEX_MAGIC_NUMBER1;
 		// will be problematic if tree_mutex_init has error
+
 		return 0;
 	}
 	else{
@@ -221,12 +223,19 @@ int flexpth_mutex_lock(pthread_mutex_t *m)
 	struct flexpth_mutex *mutex = (struct flexpth_mutex*)m;
 	int core_id;
 	fastsync_mutex *fastm;
+	int ret_val;
 
 	if(mutex == NULL)
 		return EINVAL;
 
-	if(mutex->magic_number != FLEXPTH_MUTEX_MAGIC_NUMBER1)
-		flexpth_mutex_init_critical(mutex);
+	if(mutex->magic_number != FLEXPTH_MUTEX_MAGIC_NUMBER1){
+		ret_val = flexpth_mutex_init_critical(mutex);
+		if(ret_val){
+			// unable to initialized the mutex
+			LOGERR("Unable to initialized flexpth mutex\n");
+			return EINVAL;
+		}
+	}
 
 	/* locate the mutex corresponds to the running core of this thread */
 	core_id = barrier_idx & 0x00000000ffffffff;
