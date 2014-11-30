@@ -85,6 +85,9 @@ int reeact_log_errx(const char *fmt, ...);
  */
 int reeact_get_topology(int **nodes, int **cores, int *socket_cnt, 
 			int *node_cnt, int *core_cnt);
-
+/*
+ * user configure file with topology information
+ */
+#define REEACT_USER_TOPOLOGY_CONFIG "REEACT_TOPO_CONFIG"
 
 #endif

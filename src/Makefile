@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS=-c -Wall -I../../common_toolx/ -fPIC -D_FUTEX_BARRIER_ -D_FLEX_PTHREAD_POLICY_ -I ~/WorkingDisk/Tools/usr/include/
-LDFLAGS= -L../../common_toolx/ -L ~/WorkingDisk/Tools/usr/lib/ -fPIC -shared
-LIBS= -lpthread -ldl -lhwloc -lcommontoolx
+CFLAGS=-c -Wall -I../../common_toolx/ -fPIC -D_FUTEX_BARRIER_ -D_FLEX_PTHREAD_POLICY_
+LDFLAGS= -L../../common_toolx/ -fPIC -shared
+LIBS= -lpthread -ldl -lcommontoolx
 REEACTSRC=reeact.c ./utils/reeact_log.c ./utils/reeact_topology.c
 FASTSYNCSRC=./fastsync/fastsync_barrier.c ./fastsync/fastsync_mutex.c
 PTHHOOKSRC=./pthread_hooks/pthread_hooks.c ./pthread_hooks/pthread_create.c ./pthread_hooks/pthread_barrier.c ./pthread_hooks/pthread_mutex.c
