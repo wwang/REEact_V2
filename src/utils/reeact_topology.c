@@ -1,184 +1,383 @@
 /*
  * Basic routine for parsing topology of a machine. Read the topology 
- * automatically from the Operating System with hwloc (tested with 
- * hwloc 1.10.0).
- * For simplicity of implementation, I assume that the processors in
- * a machine are identical, i.e., each socket has the same number of
+ * automatically from the Operating System or user supplied configuration file.
+ *
+ * For simplicity of implementation, I assume that the processors in a machine 
+ * are identical, i.e., each socket has the same number of
  * nodes, and each node has the same number of cores.
  *
  * Author: Wei Wang <wwang@virginia.edu>
  */
 
-#include <hwloc.h>
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <common_toolx.h>
 
 #include "reeact_utils.h"
 
 
 /*
- * Get an object's ancestor at a particular depth.
- *
- * Input parameters:
- *     obj: the object whose parent to get
- *     root: root object of the tree
- *     anc_depth: the depth of the ancestor
- * Output parameters:
- *     anc: a pointer to the correct ancestor
- *
- * Return value:
- *     0: success
- *     1: anc is NULL
- *     2: no ancestor at specified level
- *     3: anc_depth is smaller then the input object
+ * some macros for simplifying the reading of files
  */
-int get_ancestor_by_depth(struct hwloc_obj *obj, unsigned int anc_depth, 
-			  struct hwloc_obj **anc)
+#define OPEN_FILE(fp, fname, err)					\
+	do{								\
+		fp = fopen(fname, "r");					\
+		if(fp == NULL) {					\
+			LOGERRX("Unable to open file %s: ", fname);	\
+			return err;					\
+		}							\
+	} while(0);
+
+#define GET_LINE_MUST_SUCCEED(fp, line, len, size, fname, err)		\
+	do{								\
+		len = getline(&line, &size, fp);			\
+		if(len == -1){						\
+			LOGERRX("Unable to read line from file %s: ");	\
+			return err;					\
+		}							\
+		if(line[len-1] == '\n')					\
+			line[len-1] = '\0';				\
+	} while(0);
+
+/*
+ * For Linux system, get topology from sysfs.
+ * Input parameters and return values are the same as reeact_get_topology.
+ */
+#define NODE_INFO_DIRECTORY "/sys/devices/system/node/node"
+#define NODE_CORE_LIST_FILE "cpulist"
+#define CPU_INFO_DIRECTORY "/sys/devices/system/cpu/cpu"
+#define CPU_CONTEXT_LIST_FILE "topology/thread_siblings_list"
+#define CPU_PACKAGE_ID_FILE "topology/physical_package_id"
+#define ONLINE_NODE_LIST "/sys/devices/system/node/online"
+#define ONLINE_CPU_LIST "/sys/devices/system/cpu/online"
+int reeact_get_topo_sysfs(int **nodes, int **cores, int *socket_cnt, 
+			int *node_cnt, int *core_cnt)
 {
-	int depth;
+	int total_node_cnt, total_core_cnt, total_ctx_cnt;
+	char filename[256] = {0};
+	FILE *fp;
+	char *buf = NULL;
+	size_t buf_size;
+	int ln_len;
+	int ret_val;
+	int *node_ids;
+	int *ctx_ids;
+	int i,j,k;
+	int *contexts, ctx_cnt;
 
-	if(anc == NULL){
-		LOGERR("anc is NULL\n");
-		return 1;
+	/*
+	 * get the total number of nodes
+	 */
+	OPEN_FILE(fp, ONLINE_NODE_LIST, 2);
+	GET_LINE_MUST_SUCCEED(fp, buf, ln_len, buf_size, ONLINE_NODE_LIST, 2);
+	ret_val = parse_value_list_expand(buf, (void**)&node_ids, 
+					  &total_node_cnt, 0);
+
+	if(ret_val){
+		LOGERR("Unable to parse online node list, error %d\n", ret_val);
+		return 2;
 	}
+#ifdef _REEACT_DEBUG_
+	{
+		DPRINTF("There are %d nodes: ", total_node_cnt);
+		for(i = 0; i < total_node_cnt; i++){
+			fprintf(stderr, "%d,", node_ids[i]);
+		}
+		fprintf(stderr,"\n");
+	}
+#endif
+	/*
+	 * get the total number of cpu SMT context
+	 */
+	OPEN_FILE(fp, ONLINE_CPU_LIST, 2);
+	GET_LINE_MUST_SUCCEED(fp, buf, ln_len, buf_size, ONLINE_CPU_LIST, 2);
+	ret_val = parse_value_list_expand(buf, (void**)&ctx_ids, 
+					  &total_ctx_cnt, 0);
 
-	depth = obj->depth - anc_depth;
-	*anc = obj;
-	while(depth > 0){
-		if(*anc != NULL)
-			*anc = (*anc)->parent;
-		else{
-			LOGERR("Not ancestor at depth %d\n", anc_depth);
+	if(ret_val){
+		LOGERR("Unable to parse online cpu list, error %d\n", ret_val);
+		return 2;
+	}
+	/*
+	 * determine the real physical cores, here I assume the thread ids are
+	 * sequential (no gap between thread ids). I reuse the ctx_ids array.
+	 * if a cpu context i is a core, ctx_ids[i] is -1, otherwise 
+	 * ctx_ids[i] is -2.
+	 */
+	total_core_cnt = 0;
+	for(i = 0; i < total_ctx_cnt; i++){
+		if(ctx_ids[i] == -2)
+			continue; // this thread is known to be SMT context
+		/* parse the cpu context file */
+		sprintf(filename, "%s%d/%s", CPU_INFO_DIRECTORY, i, 
+			CPU_CONTEXT_LIST_FILE);
+		OPEN_FILE(fp, filename, 2);
+		GET_LINE_MUST_SUCCEED(fp, buf, ln_len, buf_size, filename, 2);
+		ret_val = parse_value_list_expand(buf, (void**)&contexts, 
+						  &ctx_cnt, 0);
+		if(ret_val){
+			LOGERR("Unable to parse cpu %d's contexts , error %d\n",
+			       i, ret_val);
 			return 2;
 		}
-		depth--;
+		/* mark this context as physical core */
+		ctx_ids[i] = -1; 
+		total_core_cnt++;
+		/* mark other SMT contexts as SMT context */
+		for(j = 0; j < ctx_cnt; j++){
+			if(contexts[j] != i)
+				ctx_ids[contexts[j]] = -2;
+		}
+		/* cleanup */
+		if(contexts) 
+			free(contexts);
 	}
+
+#ifdef _REEACT_DEBUG_
+	{
+		DPRINTF("There are %d cpu cores: ", total_core_cnt);
+		for(i = 0; i < total_ctx_cnt; i++){
+			if(ctx_ids[i] == -1)
+				fprintf(stderr, "%d,", i);
+		}
+		fprintf(stderr,"\n");
+	}
+#endif
+	/*
+	 * map physical cores to nodes. Assuming nodes are homogeneous, and 
+	 * there is no gap in node ids.
+	 */
+	*cores = (int*)malloc(total_core_cnt * sizeof(int));
+	*core_cnt = total_core_cnt / total_node_cnt;
+	DPRINTF("cores per node: %d\n", *core_cnt);
+	if(*cores == NULL){
+		LOGERRX("Unable to allocate space for core to node mapping: ");
+		return 3;
+	}
+	for(i = 0; i < total_node_cnt; i++){
+		/* parse the cpu list file */
+		sprintf(filename, "%s%d/%s", NODE_INFO_DIRECTORY, i, 
+			NODE_CORE_LIST_FILE);
+		OPEN_FILE(fp, filename, 2);
+		GET_LINE_MUST_SUCCEED(fp, buf, ln_len, buf_size, filename, 2);
+		ret_val = parse_value_list_expand(buf, (void**)&contexts, 
+						  &ctx_cnt, 0);
+		if(ret_val){
+			LOGERR("Unable to parse node %d's contexts, error %d\n",
+			       i, ret_val);
+			return 2;
+		}
+		/* assign core ids to node */
+		k = 0;
+		for(j = 0; j < ctx_cnt; j++){
+			int ctx_id = contexts[j];
+			if(ctx_ids[ctx_id] == -1){
+				(*cores)[i * *core_cnt + k] = ctx_id;
+				k++;
+			}
+		}
+		/* cleanup */
+		if(contexts != NULL)
+			free(contexts);
+	}
+
+#ifdef _REEACT_DEBUG_
+	{
+		for(i = 0; i < total_node_cnt; i++){
+			DPRINTF("node %d core list: ", i);
+			for(j = 0; j < *core_cnt; j++){
+				fprintf(stderr, "%d,", 
+					(*cores)[i * *core_cnt + j]);
+			}
+			fprintf(stderr,"\n");
+		}
+	}
+#endif
+
+	/*
+	 * determine the number of sockets
+	 */
+	*socket_cnt = -1;
+	for(i = 0; i < total_node_cnt; i++){
+		int core_id;
+		/* id of the first core on node i */
+		core_id = (*cores)[i * *core_cnt];
+		
+		/* parse the physical package id */
+		sprintf(filename, "%s%d/%s", CPU_INFO_DIRECTORY, core_id, 
+			CPU_PACKAGE_ID_FILE);
+		OPEN_FILE(fp, filename, 2);
+		GET_LINE_MUST_SUCCEED(fp, buf, ln_len, buf_size, filename, 2);
+		ret_val = parse_value_list_expand(buf, (void**)&contexts, 
+						  &ctx_cnt, 0);
+		if(ret_val){
+			LOGERR("Unable to parse cpu %d's package id, error "
+			       "%d\n", i, ret_val);
+			return 2;
+		}
+
+		if(contexts[0] > *socket_cnt)
+			*socket_cnt = contexts[0];
+
+		/* cleanup */
+		if(contexts != NULL)
+			free(contexts);
+	}
+	(*socket_cnt)++;
+	DPRINTF("There are %d sockets\n", *socket_cnt);
 	
+	/* 
+	 * map nodes to socket ids 
+	 */
+	*nodes = (int*)malloc(total_node_cnt*sizeof(int));
+	*node_cnt = total_node_cnt / *socket_cnt;
+	for(i = 0; i < *socket_cnt; i++){
+		k = 0;
+		for(j = 0; j < total_node_cnt; j++){
+			int core_id, socket_id;
+			/* id of the first core on node i */
+			core_id = (*cores)[j * *core_cnt ];
+			
+			/* parse the physical package id */
+			sprintf(filename, "%s%d/%s", CPU_INFO_DIRECTORY, 
+				core_id, CPU_PACKAGE_ID_FILE);
+			OPEN_FILE(fp, filename, 2);
+			GET_LINE_MUST_SUCCEED(fp, buf, ln_len, buf_size, 
+					      filename, 2);
+			ret_val = parse_value_list_expand(buf, 
+							  (void**)&contexts, 
+							  &ctx_cnt, 0);
+			if(ret_val){
+				LOGERR("Unable to parse cpu %d's package id, "
+				       "error %d\n",
+				       i, ret_val);
+				return 2;
+			}
+			
+			/* id of the socket */
+			socket_id = contexts[0];
+			
+			/* assign node to socket */
+			if( socket_id == i){
+				(*nodes)[socket_id * *node_cnt + k] = j;
+				k++;
+			}
+			
+			/* cleanup */
+			if(contexts != NULL)
+				free(contexts);
+		}
+	}
+       
+	/*
+	 * cleanup 
+	 */
+	if(buf)
+		free(buf);
+	if(node_ids)
+		free(node_ids);
+	if(ctx_ids)
+		free(ctx_ids);
+	fclose(fp);
+
 	return 0;
 }
 
+
 /*
- * Enumerate the children of a hwloc object at specified depth. Essentially a 
- * breakable DFS search.
- *
- * Input parameters:
- *     s: the search stack, caller should create it, but do not initialized it
- *     child_depth: the depth of child to search for
- * Output parameters:
- *     child: the next child at specified level; if *child == NULL, then no more
- *            children can be found
- *
- * Return value:
- *     0: success
- *     1: s is NULL
- *     2: child is NULL
- *     3: no more children to find
+ * Get the processor topology from user configuration file.
+ * Input parameters and return values are the same as reeact_get_topology.
  */
-#define TOPO_SEARCH_STACK_SIZE 16
-struct topo_search_stack{
-	struct hwloc_obj * objs[TOPO_SEARCH_STACK_SIZE]; // DFS search stack, 
-	                                                 // 16 should be enough
-	int children_pushed[TOPO_SEARCH_STACK_SIZE]; // the number of children 
-                                                     // pushed
-	int stack_size; // number of elements in stack
-	int init; // whether the stack is initialized
-};
-inline struct hwloc_obj * pop_topo_stack(struct topo_search_stack *s)
+int reeact_get_topo_conf(int **nodes, int **cores, int *socket_cnt, 
+			 int *node_cnt, int *core_cnt)
 {
-	if(s->stack_size == 0)
-		return NULL;
-	s->stack_size--;
-	return s->objs[s->stack_size];
-}
-inline void push_topo_stack(struct topo_search_stack *s, struct hwloc_obj * obj)
-{
-	if(s->stack_size == TOPO_SEARCH_STACK_SIZE){
-		LOGERR("topology search stack full\n");
-		return;
-	}
-	s->objs[s->stack_size] = obj;
-	s->children_pushed[s->stack_size++] = 0;
-	return;
-}
-inline struct hwloc_obj * get_topo_stack_top(struct topo_search_stack *s, 
-					     int* children_pushed)
-{
-	if(s->stack_size == 0)
-		return NULL;
-	*children_pushed = s->children_pushed[s->stack_size-1];
-	return s->objs[s->stack_size-1];
-}
-inline void inc_children_pushed(struct topo_search_stack *s)
-{
-	if(s->stack_size == 0)
-		return;
-	s->children_pushed[s->stack_size-1]++;
-	return;
-}
+	FILE *fp = NULL;
+	char *buf = NULL;
+	size_t buf_size;
+	char *conf_file;
+	char *p;
+	int ln_len;
+	int ret_val;
+	int *counts;
+	
+	conf_file = getenv(REEACT_USER_TOPOLOGY_CONFIG);
+	OPEN_FILE(fp, conf_file, 2);
 
-int enum_children_by_depth(struct topo_search_stack *s, struct hwloc_obj * root,
-			   unsigned int child_depth, struct hwloc_obj **child)
-{
-	struct hwloc_obj * o;
-	int pushed;
-
-	if(s == NULL)
-		return 1;
-	if(child == NULL)
-		return 2;
-
-	*child = NULL;
-
-	//DPRINTF("in enum s init is %d, child_depth %d\n", s->init, child_depth);
-	if(s->init == 0){
-		//DPRINTF("in init\n");
-		// initialized the stack
-		s->init = 1;
-		s->stack_size = 0;
-		push_topo_stack(s, root);
-	}
-	//DPRINTF("out init\n");
-	while(s->stack_size != 0){
-		o = get_topo_stack_top(s, &pushed);
-		//		DPRINTF("o depth %d, index %d, pushed %d\n", o->depth, 
-		//	o->os_index, pushed);
-		if(o->depth == child_depth){
-			*child = pop_topo_stack(s); // found one child
+	/* parse the file line by line */
+	while((ln_len = getline(&buf, &buf_size, fp)) != -1){
+		if(buf[ln_len-1] == '\n')
+			buf[ln_len-1] = '\0';
+		switch(buf[0]){
+		case 's':
+			/* socket, node, and core counts */
+			p = buf;
+			while((*p < '0' || *p > '9') && (*p != '\0'))
+				p++;
+			ret_val = parse_value_list_expand(p, 
+							  (void**)&counts, 
+							  &ln_len, 0);
+			if(ret_val || ln_len != 3){
+				LOGERR("Error parsing configure file line: "
+				       "%s with error %d\n", p, ret_val);
+				return 2;
+			}
 			
-			return 0;
-		}
-		else{
-			if(pushed == o->arity){
-				// no more child to push
-				pop_topo_stack(s);
+			*socket_cnt = counts[0];
+			*node_cnt = counts[1];
+			*core_cnt = counts[2];
+			break;
+		case 'n':
+			/* nodes to sockets mapping array */
+			p = buf;
+			while((*p < '0' || *p > '9') && (*p != '\0'))
+				p++;
+			ret_val = parse_value_list_expand(p, 
+							  (void**)nodes, 
+							  &ln_len, 0);
+			if(ret_val){
+				LOGERR("Error parsing configure file line: "
+				       "%s with error %d\n", buf, ret_val);
+				return 2;
 			}
-			else{
-				// pushing a new child
-				inc_children_pushed(s);
-				push_topo_stack(s, o->children[pushed]);
+			
+			break;
+		case 'c':
+			/* nodes to sockets mapping array */
+			p = buf;
+			while((*p < '0' || *p > '9') && (*p != '\0'))
+				p++;
+			ret_val = parse_value_list_expand(p, 
+							  (void**)cores, 
+							  &ln_len, 0);
+			if(ret_val){
+				LOGERR("Error parsing configure file line: "
+				       "%s with error %d\n", buf, ret_val);
+				return 2;
 			}
-								  
+			
+			break;
+		default:
+			break;
 		}
 	}
-	
-	return 3;
-}
 
-/*
- * Get the Processor id of a core: find the HWLOC_OBJ_PU object of the core. 
- * Since SMT is not useful to my polices, I only locate the first logical 
- * id on this core
- */
-struct hwloc_obj * get_topo_core_id(struct hwloc_obj * core)
-{
-	struct hwloc_obj *p = core;
-	
-	while(p != NULL){
-		if(p->type == HWLOC_OBJ_PU)
-			return p;
-		else
-			p = p->first_child;
+	/* check if we have all the information we need */
+	if(*node_cnt == 0 || *core_cnt == 0 || *socket_cnt == 0 ||
+	   *nodes == NULL || *cores == NULL){
+		LOGERR("Topology configuration file %s is not complete.\n", 
+		       conf_file);
+		return 2;
 	}
+
+	/* cleanup */
+	if(buf)
+		free(buf);
+	fclose(fp);
+
+	return 0;
 	
-	return NULL;
 }
 
 /*
@@ -187,133 +386,23 @@ struct hwloc_obj * get_topo_core_id(struct hwloc_obj * core)
 int reeact_get_topology(int **nodes, int **cores, int *socket_cnt, 
 			int *node_cnt, int *core_cnt)
 {
-	int ret_val;
-	hwloc_topology_t topology;
-	int soc_depth, node_depth, core_depth;
-	unsigned i, j;
-	struct hwloc_obj *obj, *child;
-	struct topo_search_stack s;
-		
-	
+	int ret_val = 1;
 	if(nodes == NULL || cores == NULL || socket_cnt == NULL ||
 	   node_cnt == NULL || core_cnt == NULL){
 		LOGERR("wrong parameter\n");
 		return 1;
 	}
 	
-	/* 
-	 * determine topology with hwloc
-	 */
-	ret_val = hwloc_topology_init(&topology);
-	if(ret_val != 0){
-		LOGERR("initializing hwloc failed with error %d\n",
-		       ret_val);
-		return 2;
-	}
-	ret_val = hwloc_topology_load(topology);
-	if(ret_val != 0){
-		LOGERR("determining topology with hwloc failed with error %d\n",
-		       ret_val);
-		return 2;
-	}
-
-	/*
-	 * determine the number of sockets, nodes and cores
-	 */
-	soc_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_SOCKET); 
-	*socket_cnt = hwloc_get_nbobjs_by_depth(topology, soc_depth);
-	node_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_NODE); 
-	*node_cnt = hwloc_get_nbobjs_by_depth(topology, node_depth);
-	core_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_CORE); 
-	*core_cnt = hwloc_get_nbobjs_by_depth(topology, core_depth);
-	DPRINTF("Socket count s %d, node count is %d, core count is %d\n", 
-		*socket_cnt, *node_cnt, *core_cnt);
-	DPRINTF("Socket depth %d, node depth %d, core depth %d\n",
-		soc_depth, node_depth, core_depth);
-	/*
-	 * node depth larger than socket depth, in this case
-	 * switch node and socket
-	 */
-	if(node_depth <= soc_depth){
-		int temp = soc_depth;
-		soc_depth = node_depth;
-		node_depth = temp;
-		temp = *node_cnt;
-		*socket_cnt = *node_cnt;
-		*node_cnt = temp;
-	}
-
-	/*
-	 * allocate spaces for storing the nodes and cores info
-	 */
-	*nodes = (int*)calloc(*node_cnt, sizeof(int));
-	*cores = (int*)calloc(*core_cnt, sizeof(int));
-	if(*nodes == NULL || *cores == NULL){
-		LOGERRX("unable to allocated spaces to store topology "
-			"information: ");
-		ret_val = 3;
-		goto error;
-	}
+	/* clear the output parameters */
+	*socket_cnt = *node_cnt = *core_cnt = 0;
+	*nodes = *cores = NULL;
 	
-	/*
-	 * compute the cores per node, and nodes per socket counts
-	 */
-	*core_cnt = (*core_cnt) / (*node_cnt);
-	*node_cnt = (*node_cnt) / (*socket_cnt);
-		
-	/*
-	 * parse node information
-	 */
-	for(i = 0; i < *socket_cnt; i++){
-		obj = hwloc_get_obj_by_depth(topology, soc_depth, i);
-		s.init = 0; // uninitialized it
-		
-		/*
-		 * enumerate over the socket and find all nodes associated 
-		 * with it
-		 */
-		j = 0;
-		enum_children_by_depth(&s, obj, node_depth, &child);
-		while(child != NULL){
-			// save the node information
-			(*nodes)[i * *node_cnt+j] = child->os_index;
-			j++;
-			// find next node
-			enum_children_by_depth(&s, obj, node_depth, &child);
-			
-		}
-	}
+	if(getenv(REEACT_USER_TOPOLOGY_CONFIG)) // use configuration file
+		ret_val = reeact_get_topo_conf(nodes, cores, socket_cnt, 
+					       node_cnt, core_cnt);
+	if(ret_val) // err reading configuration file or no configuration file
+		return reeact_get_topo_sysfs(nodes, cores, socket_cnt, node_cnt,
+					     core_cnt);
 
-	/*
-	 * parse core information
-	 */
-	for(i = 0; i < *node_cnt * *socket_cnt; i++){
-		obj = hwloc_get_obj_by_depth(topology, node_depth, i);
-		s.init = 0; // uninitialized it
-		
-		/*
-		 * enumerate over the nodes and find all cores associated 
-		 * with it
-		 */
-		j = 0;
-		enum_children_by_depth(&s, obj, core_depth, &child);
-		child = get_topo_core_id(child); // get logical processor id
-		while(child != NULL){
-			// save the core information
-			(*cores)[i * *core_cnt+j] = child->os_index;
-			j++;
-			// find next core
-			enum_children_by_depth(&s, obj, core_depth, &child);
-			child = get_topo_core_id(child);
-		}
-	}
-	
-	// set the return value to 0 (success)
-	ret_val = 0;
- error:
-	// cleanup hwloc
-	hwloc_topology_destroy(topology);
-	
-
-	return ret_val;
+	return 0;
 }
