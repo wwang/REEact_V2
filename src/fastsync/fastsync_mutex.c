@@ -232,6 +232,8 @@ int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex)
 		// lock
 		if(mutex->parent)
 			return fastsync_mutex_unlock_interproc(mutex->parent);
+		else 
+			return 0;
 	}
 	
 	// waked if not 0 or 1, futex problem
