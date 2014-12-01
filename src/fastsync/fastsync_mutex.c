@@ -190,7 +190,7 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
  * level is released first (even if another tree at different tree-node waits
  * for this mutex before anyone on this particular tree-node.
  */
-int fastsync_mutex_unlock_interproce(fastsync_mutex *mutex)
+int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex)
 {
 	int waked, i;
 
