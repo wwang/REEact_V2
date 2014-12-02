@@ -55,7 +55,7 @@ int flexpth_parse_core_list(struct reeact_data *rh)
 	env = getenv(FLEXPTH_CORE_LIST_ENV);
 	DPRINTF("Parsing core list: %s\n", env);
 	if(env != NULL)
-		ret_val = parse_value_list(env, (void**)&cl->cores, 
+		ret_val = parse_value_list_expand(env, (void**)&cl->cores, 
 					   &(cl->core_cnt), 0);
 	if(ret_val != 0){
 		LOGERR("Unable to parse core list \"%s\", with error %d\n", env,

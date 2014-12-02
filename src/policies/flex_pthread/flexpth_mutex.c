@@ -125,7 +125,7 @@ int flexpth_tree_mutex_init(void *data,
 	
 	// initialize each mutex with proper parent information
 	for(i = 1; i < _bar_slist.len; i++){
-		mutex_attr.parent = mutexes + _bar_slist.elements[i];
+		mutex_attr.parent = mutexes; // there is one parent for all cores
 		fastsync_mutex_init(mutexes + i, &mutex_attr);
 		tm->mutexes[i] = (void*)(mutexes + i);
 	}
@@ -236,14 +236,16 @@ int flexpth_mutex_lock(pthread_mutex_t *m)
 			return EINVAL;
 		}
 	}
+	
 
 	/* locate the mutex corresponds to the running core of this thread */
 	core_id = barrier_idx & 0x00000000ffffffff;
 	fastm = (fastsync_mutex*)
 		mutex->tmutex->mutexes[_core_to_list_map[core_id]];
 	
+	
 	/* lock the mutex */
-	return fastsync_mutex_lock(fastm);
+	return fastsync_mutex_lock(fastm, self->tidx, core_id);
 }
 
 
@@ -264,6 +266,7 @@ int flexpth_mutex_unlock(pthread_mutex_t *m)
 	core_id = barrier_idx & 0x00000000ffffffff;
 	fastm = (fastsync_mutex*)
 		mutex->tmutex->mutexes[_core_to_list_map[core_id]];
+       
 	
 	/* lock the mutex */
 	return fastsync_mutex_unlock(fastm);
