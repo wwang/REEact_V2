@@ -53,6 +53,11 @@ typedef struct _thr_params{ // data structure for thread function parameters
 }thr_params;
 
 /*
+ * a global counter for critical section test
+ */
+unsigned long long critical_counter = 0;
+
+/*
  * initialized the values of the command line parameters
  */
 int init_parameters(cmd_params * p)
@@ -335,6 +340,7 @@ void * thread_func(void * thr_args)
 		case 1:
 			ret_val = pthread_mutex_lock(args->mutex);
 			sync_called++;
+			critical_counter++;
 			ret_val = pthread_mutex_unlock(args->mutex);
 			break;
 		case 0:
@@ -475,6 +481,7 @@ int main(int argc, char * argv[])
 	// output results
 	printf("All threads finished in %f seconds\n", 
 	       get_elapsed_time(&start, &end));
+	printf("Critical counter value is %llu\n", critical_counter);
 
 	// clean up
 	pthread_barrier_destroy(&sync_point);

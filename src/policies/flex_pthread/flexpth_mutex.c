@@ -269,7 +269,7 @@ int flexpth_mutex_unlock(pthread_mutex_t *m)
        
 	
 	/* lock the mutex */
-	return fastsync_mutex_unlock(fastm);
+	return fastsync_mutex_unlock(fastm, self->tidx, core_id);
 }
 
 int flexpth_mutex_destroy(pthread_mutex_t *m)

@@ -37,7 +37,9 @@ int fastsync_mutex_init(fastsync_mutex *m, const fastsync_mutex_attr *attr)
 		return 1;
 
 	m->state = 0;
-	m->owner = FASTSYNC_MUTEX_NO_OWNER;
+	m->cpu_owner = FASTSYNC_MUTEX_NO_OWNER;
+	m->thr_owner = FASTSYNC_MUTEX_NO_OWNER;
+	m->owner_transfer_lock = 0;
 	if(attr != NULL)
 		m->parent = attr->parent;
 	else
@@ -58,7 +60,7 @@ int fastsync_mutex_lock(fastsync_mutex *mutex, int thr_id, int core_id)
 	if(mutex == NULL)
 		return 1;
 
-	if(mutex->owner != thr_id){
+	if(mutex->thr_owner != thr_id){
 		
 		/* try to lock the real mutex */
 		locked = atomic_for(&(mutex->state), 1) & 1;
@@ -66,7 +68,8 @@ int fastsync_mutex_lock(fastsync_mutex *mutex, int thr_id, int core_id)
 		// check if we have acquired the lock
 		if(!locked){
 			/* lock acquired */
-			mutex->owner = thr_id;
+			/* set the owner ship of the lock */
+			mutex->thr_owner = thr_id;
 
 			/*
 			 * yield the processor several times to allow other
@@ -89,14 +92,14 @@ int fastsync_mutex_lock(fastsync_mutex *mutex, int thr_id, int core_id)
 			}
 			
 			/* set the owner */
-			mutex->owner = thr_id;
-			return 0;
+			mutex->thr_owner = thr_id;
+			//return 0;
 		}
 	}
 
 	// lock the parent mutex if necessary
 	if(mutex->parent){
-		fastsync_mutex_lock_interproc(mutex->parent, core_id);
+		fastsync_mutex_lock_interproc(mutex->parent, thr_id, core_id);
 	}
 
 	// all mutexes acquired
@@ -107,25 +110,56 @@ int fastsync_mutex_lock(fastsync_mutex *mutex, int thr_id, int core_id)
 /*
  * lock mutex at inter-processor level
  */
-int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int core_id)
+int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int thr_id, 
+				  int core_id)
 {
 	int locked;
 	int i;
+	int owner_lock;
+	int lock_transferred = 0;
 	
 	if(mutex == NULL)
 		return 1;
+	
+	/*
+	 * try to grab the lock if it have locked by a thread from this core
+	 * before
+	 */
+	if(mutex->cpu_owner == core_id){
+		/* try to grab the ownership */
+		owner_lock = atomic_xchg(&(mutex->owner_transfer_lock),1);
+		if(owner_lock == 0){
+			/* ownership lock grabbed; claim ownership */
+			if(atomic_read(mutex->cpu_owner) == core_id){
+				mutex->thr_owner = thr_id;
+				lock_transferred = 1;
+			}
+			/* unlock the mutex */
+			mutex->owner_transfer_lock = 0;
+		}
+		//DPRINTF("Mutex %p grabbed by thread %d on core %d\n", mutex,
+		//	thr_id, core_id);
+		lock_transferred = 1;
+	}
 
-	if(mutex->owner == core_id){
+	/*
+	 * ownership of the lock did not transfer, grab the mutex normally.
+	 */
+	if(!lock_transferred){
 		/* spin and try to lock the mutex */
 		for (i = 0; i < FASTSYNC_MUTEX_SPIN_LOCK_LOOPS ; i++){
 			locked = atomic_for(&(mutex->state), 1) & 1;
 			if(!locked){
 				/* set the owner */
-				mutex->owner = core_id;
+				mutex->cpu_owner = core_id;
+				mutex->thr_owner = thr_id;
+				//DPRINTF("Mutex %p acquired by thread %d on core %d\n", mutex,
+				//	thr_id, core_id);
 				/* lock the parent mutex if necessary */
 				if(mutex->parent)
 					fastsync_mutex_lock_interproc
-						(mutex->parent, core_id);
+						(mutex->parent, thr_id, 
+						 core_id);
 				/* all mutexes acquired */
 				return 0;
 			}
@@ -142,13 +176,16 @@ int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int core_id)
 				  NULL, 0);
 		}
 		/* set the owner */
-		mutex->owner = core_id;
+		mutex->cpu_owner = core_id;
+		mutex->thr_owner = thr_id;
+		//DPRINTF("Mutex %p acquired by thread %d on core %d\n", mutex,
+		//	thr_id, core_id);
 	}
 	
 
 	/* lock the parent mutex if necessary */
 	if(mutex->parent)
-		fastsync_mutex_lock_interproc(mutex->parent, core_id);
+		fastsync_mutex_lock_interproc(mutex->parent, thr_id, core_id);
 	/* all mutexes acquired */
 	return 0;
 
@@ -159,7 +196,7 @@ int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int core_id)
  * if there is any thread waiting on this core, the mutex is transferred to this
  * thread.
  */
-int fastsync_mutex_unlock(fastsync_mutex *mutex)
+int fastsync_mutex_unlock(fastsync_mutex *mutex, int thr_id, int core_id)
 {
 	int waked;
 
@@ -167,7 +204,7 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 		return 1;
 
 	/* unset the owner */
-	mutex->owner = FASTSYNC_MUTEX_NO_OWNER;
+	mutex->thr_owner = FASTSYNC_MUTEX_NO_OWNER;
 
 	/* locked but not contended */
 	if( mutex->state == 1 && (atomic_cmpxchg(&(mutex->state), 1, 0) == 1)){
@@ -192,7 +229,8 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 		 * implement a sound tree-mutex, or maybe some other algorithm.
 		 */
 		if(mutex->parent)
-			fastsync_mutex_unlock_interproc(mutex->parent);
+			fastsync_mutex_unlock_interproc(mutex->parent, thr_id, 
+							core_id);
 		return 0;
 	}
 	
@@ -207,8 +245,14 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 		/*
 		 * one thread wakes up, lock will be transferred
 		 * give up the processor so the other threads can take the lock
-		 * over
+		 * over. If this thread keeps running before other threads that
+		 * are waiting for the mutex, the mutex are held by the core of 
+		 * these threads, and threads on the other cores would starve.
+		 * I need scheduler support to fix this problem. It is possible
+		 * to include another queue, but I also worried about its 
+		 * overhead.
 		 */
+		sched_yield();
 		return 0;
 	}
 	else if (waked == 0){
@@ -218,7 +262,8 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 		 * the lock previously
 		 */
 		if(mutex->parent)
-			fastsync_mutex_unlock_interproc(mutex->parent);
+			fastsync_mutex_unlock_interproc(mutex->parent, thr_id, 
+							core_id);
 		
 		return 0;
 	}
@@ -234,21 +279,59 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
  * level is released first (even if another tree at different tree-node waits
  * for this mutex before anyone on this particular tree-node.
  */
-int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex)
+int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex, int thr_id, 
+				    int core_id)
 {
 	int waked;
 	int i;
+	int owner_lock;
 
 	if(mutex == NULL)
 		return 1;
+	
+	//DPRINTF("Trying to release mutex %p for core %d by thread %d\n",
+	//	mutex, core_id, thr_id);
+	/* only release this thread if it is owned by this thread */
+	owner_lock = atomic_xchg(&(mutex->owner_transfer_lock), 1);
+	if(owner_lock == 1){
+		/* 
+		 * ownership being transferred to other thread, we cannot unlock
+		 * it 
+		 */
+		//DPRINTF("Cannot  to release mutex %p for core %d by thread %d\n",
+		//mutex, core_id, thr_id);
+		return 0;
+	}
+	/* ownership lock grabbed */
+	if(mutex->thr_owner != thr_id){
+		/* 
+		 * ownership transferred to other thread, we cannot unlock it; 
+		 * just release the ownership lock and return
+		 */
+		//DPRINTF("Cannot  to release mutex %p for core %d by thread %d\n",
+		//mutex, core_id, thr_id);
+		mutex->owner_transfer_lock = 0;
+		return 0;
+		
+	}
+	else{
+		/* this thread own the mutex, safe to unlock it */
+		mutex->cpu_owner = FASTSYNC_MUTEX_NO_OWNER;
+		mutex->thr_owner = FASTSYNC_MUTEX_NO_OWNER;
+		/* release the ownership lock */
+		mutex->owner_transfer_lock = 0;
+	}
 
-	mutex->owner = FASTSYNC_MUTEX_NO_OWNER;
+	//DPRINTF("Can    to release mutex %p for core %d by thread %d\n",
+	//	mutex, core_id, thr_id);
+		
 	/* locked but not contended */
 	if( mutex->state == 1 && (atomic_cmpxchg(&(mutex->state), 1, 0) == 1)){
 		// mutex released
 		// release parent lock if necessary
 		if(mutex->parent)
-			fastsync_mutex_unlock_interproc(mutex->parent);
+			fastsync_mutex_unlock_interproc(mutex->parent, thr_id, 
+							core_id);
 		return 0;
 	}
 		
@@ -280,7 +363,8 @@ int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex)
 		 * no thread wakes up ==> no thread waiting, release parent lock
 		 */
 		if(mutex->parent)
-			fastsync_mutex_unlock_interproc(mutex->parent);
+			fastsync_mutex_unlock_interproc(mutex->parent, thr_id,
+							core_id);
 		return 0;
 	}
 	

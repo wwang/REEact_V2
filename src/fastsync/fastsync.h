@@ -163,7 +163,9 @@ typedef union _fastsync_mutex{
 		 * fix it. See the fastsync_mutex_unlock function for more 
 		 * information of this race condition.
 		 */
-		int owner;
+		int cpu_owner;
+		int thr_owner;
+		int owner_transfer_lock;
 		/* parent mutex */
 		union _fastsync_mutex *parent;
 	};
@@ -200,7 +202,8 @@ int fastsync_mutex_lock(fastsync_mutex *mutex, int thr_id, int core_id);
 /*
  * inter-processor version of the mutex lock
  */ 
-int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int core_idx);
+int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int thr_id, 
+				  int core_idx);
 
 /*
  * Unlock a fastsync mutex. This function first unlock the mutex at core level,
@@ -208,18 +211,21 @@ int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int core_idx);
  * thread.
  * Input parameters:
  *     mutex: the mutex to lock
+ *     thr_id: thread id of the caller
+ *     core_id: id of the running core of the caller
  * Return value:
  *     0: success
  *     1: mutex is NULL
  *     2: error with futex
  */
-int fastsync_mutex_unlock(fastsync_mutex *mutex);
+int fastsync_mutex_unlock(fastsync_mutex *mutex, int thr_id, int core_id);
 /*
  * Unlock a fastsync mutex at inter-processor level; threads waiting at this 
  * level is released first (even if another tree at different tree-node waits
  * for this mutex before anyone on this particular tree-node.
  */ 
-int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex);
+int fastsync_mutex_unlock_interproc(fastsync_mutex *mutex, int thr_id, 
+				    int core_id);
 
 /*
  * END: fastsync mutex declarations
