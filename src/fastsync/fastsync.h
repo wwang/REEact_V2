@@ -148,10 +148,22 @@ typedef union _fastsync_mutex{
 		 * 0b10 (2): unlocked and contended
 		 * 0b11 (3): locked and contended
 		 *
-		 * in sort: last bit means locked or not, second to the last
+		 * in short: last bit means locked or not, second to the last
 		 * means contended or not
 		 */
 		int state;
+		/*
+		 * The owner id of a mutex node in the tree. If the node is a 
+		 * core-level mutex, then this id is thread id. If the node is
+		 * at processor-level, then this id is core id. 
+		 * I add this owner id so that threads on the same core and
+		 * take over a lock without deadlock on it. However, this 
+		 * implementation have a potential race condition. I need 
+		 * scheduler help or other distributed mutex mechanism to 
+		 * fix it. See the fastsync_mutex_unlock function for more 
+		 * information of this race condition.
+		 */
+		int owner;
 		/* parent mutex */
 		union _fastsync_mutex *parent;
 	};
@@ -178,15 +190,17 @@ int fastsync_mutex_init(fastsync_mutex *mutex, const fastsync_mutex_attr *attr);
  * the mutex at core-level. If succeed, it proceeds to lock at higher levels.
  * Input parameters:
  *     mutex: the mutex to lock
+ *     thr_id: thread id of the caller
+ *     core_id: id of the running core of the caller
  * Return value:
  *     0: success
  *     1: mutex is NULL
  */
-int fastsync_mutex_lock(fastsync_mutex *mutex);
+int fastsync_mutex_lock(fastsync_mutex *mutex, int thr_id, int core_id);
 /*
  * inter-processor version of the mutex lock
  */ 
-int fastsync_mutex_lock_interproc(fastsync_mutex *mutex);
+int fastsync_mutex_lock_interproc(fastsync_mutex *mutex, int core_idx);
 
 /*
  * Unlock a fastsync mutex. This function first unlock the mutex at core level,
