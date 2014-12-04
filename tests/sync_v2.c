@@ -344,6 +344,30 @@ void * thread_func(void * thr_args)
 			ret_val = pthread_mutex_unlock(args->mutex);
 			ret_val = pthread_barrier_wait(args->sync_point);
 			break;
+<<<<<<< HEAD
+=======
+		case 2:
+			sync_called++;
+			ret_val = pthread_barrier_wait(args->sync_point);
+			if(args->tidx == 0)
+				p->all_start = 0;
+			ret_val = pthread_barrier_wait(args->sync_point);
+			if(args->tidx == 0){
+				ret_val = pthread_mutex_lock(args->cond_mtx);
+				p->all_start = 1;
+				//critical_counter++;
+				ret_val = pthread_mutex_unlock(args->cond_mtx);
+				pthread_cond_broadcast(args->all_start);
+			}
+			else{
+				ret_val = pthread_mutex_lock(args->cond_mtx);
+				//critical_counter++;
+				while(!p->all_start)
+					pthread_cond_wait(args->all_start, 
+							  args->cond_mtx);
+				ret_val = pthread_mutex_unlock(args->cond_mtx);
+			}
+>>>>>>> master
 		case 0:
 		default:
 			sync_called++;
@@ -436,8 +460,8 @@ int main(int argc, char * argv[])
 		thr_args[t].tidx = t;
 		thr_args[t].cmd_params = &params;
 		thr_args[t].sync_point = &sync_point;
-		thr_args[t].all_start = &all_start;
 		thr_args[t].cond_mtx = &cond_mtx;
+		thr_args[t].all_start = &all_start;
 		thr_args[t].total_iters = thr_trials;
 		thr_args[t].mutex = &mtx;
 		if(extra_trials > 0){
