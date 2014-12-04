@@ -158,7 +158,7 @@ typedef struct _fastsync_mutex_attr{
 /*
  * Initialized a fastsync mutex object:
  * Input parameters:
- *     mutex: the mutex to initialized
+ *     mutex: the mutex to initialize
  *     attr: mutex attributes
  * Return value:
  *     0: success
@@ -189,5 +189,75 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex);
 /*
  * END: fastsync mutex declarations
  */
+
+/*
+ * BEGIN: fastsync conditional variable declarations
+ */
+
+typedef union _fastsync_cond{
+	char padding[64];
+	struct {
+		fastsync_mutex *mutex;
+		int seq;
+	};
+}fastsync_cond;
+
+typedef struct _fastsync_cond_attr{
+	// TODO: add properties here
+	int dummy;
+}fastsync_cond_attr;
+
+/*
+ * Initialize a fastsync conditional variable object:
+ * Input parameters:
+ *     cond: the conditional variable to initialize
+ *     attr: conditional variable attributes
+ * Return value:
+ *     0: success
+ *     1: cond is NULL
+ */
+int fastsync_cond_init(fastsync_cond *cond, const fastsync_cond_attr *atrr);
+
+/*
+ * Wait on a conditional variable
+ *     cond: the conditional variable to wait on
+ * Return value:
+ *     0: success
+ *     1: cond is NULL and/or mutex is NULL
+ *     2: mutex does not match previously used mutex
+ *     2: error with futex
+ */
+int fastsync_cond_wait(fastsync_cond *cond, fastsync_mutex *mutex);
+
+/*
+ * Let at least one (signal) or all (broadcast) waiter(s) of the conditional 
+ * variable to proceed.
+ * signal_count version also returns the number of threads waited from queue
+ * Input parameters:
+ *     cond: the conditional variable to signal
+ *     count: the number of threads waked from futex queue
+ * Return value:
+ *     0: success
+ *     1: cond is NULL
+ *     2: error with futex
+ */
+int fastsync_cond_signal(fastsync_cond *cond);
+int fastsync_cond_signal_count(fastsync_cond *cond, int *count);
+int fastsync_cond_broadcast(fastsync_cond *cond);
+
+/*
+ * Destroy a fastsync conditional variable object
+ * Input parameters
+ *     cond: the conditional variable to wait on
+ * Return value:
+ *     0: success
+ *     1: cond is NULL
+ */
+int fastsync_cond_destory(fastsync_cond *cond);
+
+/*
+ * END: fastsync conditional variable declarations
+ */
+
 
 #endif
