@@ -168,3 +168,67 @@ int reeact_policy_pthread_mutex_destroy(void *mutex)
 	return 0;
 #endif	
 }
+
+int react_policy_pthread_cond_init(void *cond, void *attr)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_cond_init((pthread_cond_t*)cond, 
+				      (pthread_condattr_t*)attr);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int react_policy_pthread_cond_signal(void *cond)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_cond_signal((pthread_cond_t*)cond);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int react_policy_pthread_cond_broadcast(void *cond)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_cond_broadcast((pthread_cond_t*)cond);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int react_policy_pthread_cond_destroy(void *cond)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_cond_destroy((pthread_cond_t*)cond);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int react_policy_pthread_cond_wait(void *cond, void *mutex)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_cond_wait((pthread_cond_t*)cond,
+				      (pthread_mutex_t*)mutex);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int react_policy_pthread_timedwait(void *cond, void *mutex, void *abstime)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_pthread_cond_timedwait((pthread_cond_t*)cond,
+					   (pthread_mutex_t*)mutex,
+					   (struct timespec*)abstime);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}

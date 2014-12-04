@@ -54,6 +54,7 @@ int fastsync_cond_destroy(fastsync_cond *cond)
 int fastsync_cond_wait(fastsync_cond *cond, fastsync_mutex *mutex)
 {
 	int cur_seq;
+	fastsync_mutex *old;
 
 	if(cond == NULL || mutex == NULL)
 		return 1;
@@ -67,15 +68,15 @@ int fastsync_cond_wait(fastsync_cond *cond, fastsync_mutex *mutex)
 			return 2;
 
 		/* set the mutex to the be the conditional variable's mutex */
-		atomic_cmpxchg(&(cond->mutex), NULL, mutex);
-		if(cond->mutex != mutex)
+		old = atomic_cmpxchg(&(cond->mutex), NULL, mutex);
+		if(old != NULL)
 			return 2;
 	}
 	
 	/* release mutex */
 	fastsync_mutex_unlock(mutex);
 	/* wait on the conditional variable */
-	sys_futex(&(cond->seq), FUTEX_WAKE_PRIVATE, cur_seq, NULL, NULL);
+	sys_futex(&(cond->seq), FUTEX_WAKE_PRIVATE, cur_seq, NULL, NULL, 0);
 
 	/*
 	 * suspend if the mutex is lock
@@ -92,7 +93,7 @@ int fastsync_cond_wait(fastsync_cond *cond, fastsync_mutex *mutex)
 /* 
  * let at least one waiter proceed
  */
-int fastsync_cond_signal(fastsync_cond *cond);
+int fastsync_cond_signal(fastsync_cond *cond)
 {
 	if(cond == NULL)
 		return 1;
@@ -137,8 +138,8 @@ int fastsync_cond_broadcast(fastsync_cond *cond)
 	 * release one waiter and put the rest on the mutex wait queue
 	 */
 	if(cond->mutex)
-		*count = sys_futex(&(cond->seq), FUTEX_REQUEUE_PRIVATE, 1, NULL,
-				   cond->mutex, 0);
+		sys_futex(&(cond->seq), FUTEX_REQUEUE_PRIVATE, 1, NULL, 
+			  cond->mutex, 0);
 
 	return 0;
 }

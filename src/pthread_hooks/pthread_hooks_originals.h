@@ -29,5 +29,18 @@ extern int (*real_pthread_mutex_timedlock)(pthread_mutex_t *mutex,
 extern int (*real_pthread_mutex_unlock)(pthread_mutex_t *mutex);
 extern int (*real_pthread_mutex_consistent)(pthread_mutex_t *mutex);
 extern int (*real_pthread_mutex_destroy)(pthread_mutex_t *mutex);
+
+extern int (*real_pthread_cond_init)(pthread_cond_t *cond, 
+				pthread_condattr_t *cond_attr);
+extern int (*real_pthread_cond_signal)(pthread_cond_t *cond);
+extern int (*real_pthread_cond_broadcast)(pthread_cond_t *cond);
+extern int (*real_pthread_cond_destroy)(pthread_cond_t *cond);
+extern int (*real_pthread_cond_wait)(pthread_cond_t *cond, 
+				     pthread_mutex_t *mutex);
+extern int (*real_pthread_cond_timedwait)(pthread_cond_t *cond, 
+				     pthread_mutex_t *mutex, 
+				     const struct timespec *abstime);
+
+
 #endif
 

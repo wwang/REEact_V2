@@ -36,6 +36,16 @@ typedef int (*pthread_mutex_general_type)(pthread_mutex_t *mutex);
 typedef int (*pthread_mutex_timedlock_type)(pthread_mutex_t *mutex, 
 					    const struct timespec *abs_timeout);
 
+typedef int (*pthread_cond_general_type)(pthread_cond_t *cond);
+typedef int (*pthread_cond_init_type)(pthread_cond_t *cond, 
+				     pthread_condattr_t *cond_attr);
+typedef int (*pthread_cond_wait_type)(pthread_cond_t *cond, 
+				      pthread_mutex_t *mutex);
+typedef int (*pthread_cond_timedwait_type)(pthread_cond_t *cond, 
+					   pthread_mutex_t *mutex, 
+					   const struct timespec *abstime);
+
+
 pthread_create_type real_pthread_create;
 pthread_barrier_init_type real_pthread_barrier_init;
 pthread_barrier_wait_type real_pthread_barrier_wait;
@@ -48,6 +58,13 @@ pthread_mutex_timedlock_type real_pthread_mutex_timedlock;
 pthread_mutex_general_type real_pthread_mutex_unlock;
 pthread_mutex_general_type real_pthread_mutex_consistent;
 pthread_mutex_general_type real_pthread_mutex_destroy;
+
+pthread_cond_init_type real_pthread_cond_init;
+pthread_cond_general_type real_pthread_cond_destroy;
+pthread_cond_general_type real_pthread_cond_signal;
+pthread_cond_general_type real_pthread_cond_broadcast;
+pthread_cond_wait_type real_pthread_cond_wait;
+pthread_cond_timedwait_type real_pthread_cond_timedwait;
 
 /*
  * initialization function for REEact pthread hooks.
@@ -94,6 +111,24 @@ int reeact_pthread_hooks_init(void *data)
 		(pthread_mutex_timedlock_type)dlsym(RTLD_NEXT, 
 						  "pthread_mutex_timedlock");
 	
+	real_pthread_cond_init = 
+		(pthread_cond_init_type)dlsym(RTLD_NEXT, "pthread_cond_init");
+	real_pthread_cond_destroy = 
+		(pthread_cond_general_type)dlsym(RTLD_NEXT, 
+						 "pthread_cond_destroy");
+	real_pthread_cond_signal = 
+		(pthread_cond_general_type)dlsym(RTLD_NEXT, 
+						 "pthread_cond_signal");
+	real_pthread_cond_broadcast = 
+		(pthread_cond_general_type)dlsym(RTLD_NEXT, 
+						 "pthread_cond_broadcast");
+	real_pthread_cond_wait = 
+		(pthread_cond_wait_type)dlsym(RTLD_NEXT, 
+						 "pthread_cond_wait");
+	real_pthread_cond_timedwait = 
+		(pthread_cond_timedwait_type)dlsym(RTLD_NEXT, 
+						 "pthread_cond_timedwait");
+
 
 	if ((error = dlerror()) != NULL)  {
 		fprintf(stderr, "Error opening original pthread functions with "

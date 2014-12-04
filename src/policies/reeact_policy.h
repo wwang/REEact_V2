@@ -73,6 +73,7 @@ int reeact_policy_pthread_barrier_destroy(void *barrier);
  * Input parameters (see the pthread_mutex manuals for more info):
  *     mutex: by default a "pthread_mutex_t*" type
  *     attr: by default a "pthread_mutexattr_t*" type
+ *     abs_timeout: by default a "struct timespec*) type
  * Return values:
  *     same as corresponding pthread_mutex functions or by user definition
  */
@@ -83,5 +84,23 @@ int reeact_policy_pthread_mutex_timedlock(void *mutex, void *abs_timeout);
 int reeact_policy_pthread_mutex_unlock(void *mutex);
 int reeact_policy_pthread_mutex_consistent(void *mutex);
 int reeact_policy_pthread_mutex_destroy(void *mutex);
+
+
+/*
+ * pthread conditional variable hooks of the user policy. 
+ * 
+ * Input parameters (see the pthread_cond manuals for more info):
+ *     mutex: by default a "pthread_cond_t*" type
+ *     attr: by default a "pthread_condattr_t*" type
+ *     abstime: by default a "struct timespec*) type
+ * Return values:
+ *     same as corresponding pthread_mutex functions or by user definition
+ */
+int react_policy_pthread_cond_init(void *cond, void *attr);
+int react_policy_pthread_cond_signal(void *cond);
+int react_policy_pthread_cond_broadcast(void *cond);
+int react_policy_pthread_cond_destroy(void *cond);
+int react_policy_pthread_cond_wait(void *cond, void *mutex);
+int react_policy_pthread_timedwait(void *cond, void *mutex, void *abstime);
 
 #endif
