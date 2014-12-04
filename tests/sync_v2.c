@@ -342,6 +342,7 @@ void * thread_func(void * thr_args)
 			sync_called++;
 			critical_counter++;
 			ret_val = pthread_mutex_unlock(args->mutex);
+			ret_val = pthread_barrier_wait(args->sync_point);
 			break;
 		case 0:
 		default:

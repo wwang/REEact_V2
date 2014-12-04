@@ -18,15 +18,6 @@ struct flexpth_tree_mutex_attr{
 };
 
 /*
- * data structure that holds the information of the mutex tree
- */
-
-struct flexpth_tree_mutex{
-	/* array of pointers to fastsync_mutex */
-	void *mutexes[FLEX_PTHREAD_MAX_CORE_CNT*2]; 
-};
-
-/*
  * data structure that holds the information of one flex-pthread mutex
  * this data structure will be used to replace the content of pthread_mutex_t.
  * Note pthread_mutex_t is 40 bytes at the moment.
@@ -42,7 +33,7 @@ struct flexpth_mutex{
 	 */
 	int magic_number;
 	void *pth_mutex; // stores the old pthread mutex information 
-	struct flexpth_tree_mutex *tmutex; // the tree mutex
+	void *mutex; // the fastsync mutex
 };
 
 /*
@@ -77,8 +68,7 @@ int flexpth_mutex_internal_cleanup(void *data);
  *     3: Unable to allocate memory
  *     
  */
-int flexpth_tree_mutex_init(void *data,
-			    struct flexpth_tree_mutex **tmutex,
+int flexpth_tree_mutex_init(void *data, void **mutex,
 			    struct flexpth_tree_mutex_attr *attr);
 
 

@@ -24,6 +24,8 @@ int flexpth_init(void *data)
 {
 	struct flexpth_data *fh;
 	struct reeact_data *rh = (struct reeact_data*)data;
+	
+	printf("REEact flex-pthread engaged.\n");
 
 	DPRINTF("Initializing flex-pthread\n");
 

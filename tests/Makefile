@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -Wall -g -D__DEBUG__ -O -I../../common_toolx/ -fPIC
+CFLAGS=-c -Wall -g -D__DEBUG__ -O3 -I../../common_toolx/ -fPIC
 LDFLAGS= -L../../common_toolx/
 LIBS= -lpthread -lcommontoolx -ldl
 SOURCES=sync_v2.c
