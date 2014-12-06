@@ -344,8 +344,6 @@ void * thread_func(void * thr_args)
 			ret_val = pthread_mutex_unlock(args->mutex);
 			ret_val = pthread_barrier_wait(args->sync_point);
 			break;
-<<<<<<< HEAD
-=======
 		case 2:
 			sync_called++;
 			ret_val = pthread_barrier_wait(args->sync_point);
@@ -367,7 +365,6 @@ void * thread_func(void * thr_args)
 							  args->cond_mtx);
 				ret_val = pthread_mutex_unlock(args->cond_mtx);
 			}
->>>>>>> master
 		case 0:
 		default:
 			sync_called++;

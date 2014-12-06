@@ -121,13 +121,13 @@ int fastsynt_barrier_wait_interproc(fastsync_barrier *barrier, int inc_count)
 	// atomic add and fetch
 	int count = atomic_addf(&(barrier->waiting), inc_count);
 
-		// done waiting for the barrier
+	// done waiting for the barrier
 	if(count == barrier->total_count){
 		// wait at parent barrier
-		if(barrier->parent_bar)
+		if(barrier->parent_bar){
 			fastsynt_barrier_wait_interproc(barrier->parent_bar,
 							count);
-
+		}
 		// this is the last thread hitting the barrier
 		// clear the waiting count and increment sequence count
 		// these operations should be done simultaneously 

@@ -5,7 +5,7 @@ LIBS= -lpthread -ldl -lcommontoolx
 REEACTSRC=reeact.c ./utils/reeact_log.c ./utils/reeact_topology.c
 FASTSYNCSRC=./fastsync/fastsync_barrier.c ./fastsync/fastsync_mutex.c ./fastsync/fastsync_cond.c
 PTHHOOKSRC=./pthread_hooks/pthread_hooks.c ./pthread_hooks/pthread_create.c ./pthread_hooks/pthread_barrier.c ./pthread_hooks/pthread_mutex.c ./pthread_hooks/pthread_cond.c
-POLICYSRC=./policies/reeact_policy.c ./policies/flex_pthread/flexpth_barrier.c ./policies/flex_pthread/flexpth_create.c ./policies/flex_pthread/flex_pthread.c ./policies/flex_pthread/flexpth_thread_keeper.c ./policies/flex_pthread/flexpth_env_var.c ./policies/flex_pthread/flexpth_mutex.c
+POLICYSRC=./policies/reeact_policy.c ./policies/flex_pthread/flexpth_barrier.c ./policies/flex_pthread/flexpth_create.c ./policies/flex_pthread/flex_pthread.c ./policies/flex_pthread/flexpth_thread_keeper.c ./policies/flex_pthread/flexpth_env_var.c ./policies/flex_pthread/flexpth_mutex.c ./policies/flex_pthread/flexpth_cond.c
 SOURCES=$(REEACTSRC) $(FASTSYNCSRC) $(PTHHOOKSRC) $(POLICYSRC)
 BUILD=build
 OBJECTS=$(addprefix $(BUILD)/, $(SOURCES:.c=.o))

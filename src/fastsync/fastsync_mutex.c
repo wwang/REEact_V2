@@ -104,6 +104,7 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 
 	if(mutex == NULL)
 		return 1;
+
 	
 	/* locked but not contended */
 	if( mutex->state == 1 && (atomic_cmpxchg(&(mutex->state), 1, 0) == 1)){
@@ -117,9 +118,9 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 	for (i = 0; i < FASTSYNC_MUTEX_SPIN_LOCK_LOOPS ; i++){
 		if(mutex->state & 1){
 			/* lock transferred */
-			spinlock_hint();
 			return 0;
 		}
+		spinlock_hint();
 	}
 		        
 	/* reset contended bit */
@@ -127,6 +128,7 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
                                                  // waken thread from futex
 	
 	sys_futex(&(mutex->state), FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
+
 
 	return 0;
 }

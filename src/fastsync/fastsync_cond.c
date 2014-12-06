@@ -55,28 +55,35 @@ int fastsync_cond_wait(fastsync_cond *cond, fastsync_mutex *mutex)
 {
 	int cur_seq;
 	fastsync_mutex *old;
-
-	if(cond == NULL || mutex == NULL)
-		return 1;
+	
+	//if(cond == NULL || mutex == NULL)
+	//	return 1;
 
 	/* acquired current sequence number */
 	cur_seq = cond->seq;
 	
 	if(cond->mutex != mutex){
-		if(cond->mutex != NULL)
+		if(cond->mutex != NULL){
 			/* mutex is different the previously used mutex */
+			DPRINTF("cond->mutex is %p, input mutex is %p\n", cond->mutex,
+				mutex);
 			return 2;
+		}
 
 		/* set the mutex to the be the conditional variable's mutex */
+		DPRINTF("reset the mutex with %p\n", mutex);
 		old = atomic_cmpxchg(&(cond->mutex), NULL, mutex);
-		if(old != NULL)
+		if(old != NULL){
+			DPRINTF("old mutex is NULL?: %p, input mutex is\n", old,
+				mutex);
 			return 2;
+		}
 	}
 	
 	/* release mutex */
 	fastsync_mutex_unlock(mutex);
 	/* wait on the conditional variable */
-	sys_futex(&(cond->seq), FUTEX_WAKE_PRIVATE, cur_seq, NULL, NULL, 0);
+	sys_futex(&(cond->seq), FUTEX_WAIT_PRIVATE, cur_seq, NULL, NULL, 0);
 
 	/*
 	 * suspend if the mutex is lock
@@ -110,8 +117,8 @@ int fastsync_cond_signal(fastsync_cond *cond)
 int fastsync_cond_signal_count(fastsync_cond *cond, int *count)
 {
 
-	if(cond == NULL)
-		return 1;
+	//if(cond == NULL)
+	//	return 1;
 	
 	/* increase the sequence count */
 	atomic_addf(&(cond->seq), 1);
@@ -128,6 +135,8 @@ int fastsync_cond_signal_count(fastsync_cond *cond, int *count)
  */
 int fastsync_cond_broadcast(fastsync_cond *cond)
 {
+	int count = 0;
+
 	if(cond == NULL)
 		return 1;
 
@@ -138,8 +147,8 @@ int fastsync_cond_broadcast(fastsync_cond *cond)
 	 * release one waiter and put the rest on the mutex wait queue
 	 */
 	if(cond->mutex)
-		sys_futex(&(cond->seq), FUTEX_REQUEUE_PRIVATE, 1, NULL, 
-			  cond->mutex, 0);
+		count = sys_futex(&(cond->seq), FUTEX_REQUEUE_PRIVATE, 1, 
+				  (void*)INT_MAX, cond->mutex, 0);
 
 	return 0;
 }

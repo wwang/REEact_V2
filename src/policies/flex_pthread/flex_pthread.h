@@ -79,7 +79,6 @@ int flexpth_barrier_init(pthread_barrier_t *barrier,
  * Input parameters:
  *      barrier: the barrier to wait at
  *      attr: attribute of the barrier
- *      count: the number of threads that use this barrier
  * Return values:
  *      0: success
  *      other: the same as pthread standards
@@ -92,6 +91,24 @@ int flexpth_mutex_timedlock(pthread_mutex_t *mutex,
 			   const struct timespec *abs_timeout);
 int flexpth_mutex_destroy(pthread_mutex_t *mutex);
 int flexpth_mutex_consistent(pthread_mutex_t *mutex);
+
+/*
+ * Conditional variable synchronization functions for flex-pthread
+ * Input parameters:
+ *      cond: the conditional variable to wait at
+ *      attr: attribute of the barrier
+ *      mutex: the mutex associated with the conditional variable
+ * Return values:
+ *      0: success
+ *      other: the same as pthread standards
+ */
+int flexpth_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+int flexpth_cond_signal(pthread_cond_t *cond);
+int flexpth_cond_broadcast(pthread_cond_t *cond);
+int flexpth_cond_destroy(pthread_cond_t *cond);
+int flexpth_cond_wait(pthread_cond_t *cond, pthread_mutex_t *m);
+int flexpth_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *m, 
+			   const struct timespec *abs_timeout);
 
 
 

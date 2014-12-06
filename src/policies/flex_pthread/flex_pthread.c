@@ -14,6 +14,7 @@
 #include "flex_pthread.h"
 #include "flexpth_barrier.h"
 #include "flexpth_mutex.h"
+#include "flexpth_cond.h"
 #include "flexpth_thread_keeper.h"
 #include "flexpth_env_var.h"
 
@@ -50,6 +51,7 @@ int flexpth_init(void *data)
 	flexpth_barrier_internal_init(data);
 	flexpth_thread_keeper_init(data);
 	flexpth_mutex_internal_init(data);
+	flexpth_cond_internal_init(data);
 
 	return 0;
 }
@@ -76,6 +78,7 @@ int flexpth_cleanup(void *data)
 	/*
 	 * per component cleanup
 	 */
+	flexpth_cond_internal_cleanup(data);
 	flexpth_mutex_internal_cleanup(data);
 	flexpth_barrier_internal_cleanup(data);
 	flexpth_thread_keeper_cleanup(data);
