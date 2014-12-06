@@ -197,8 +197,10 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex);
 typedef union _fastsync_cond{
 	char padding[64];
 	struct {
+		int use_child;
 		fastsync_mutex *mutex;
-		int seq;
+		unsigned long long seq;
+		union _fastsync_cond *parent;
 	};
 }fastsync_cond;
 
