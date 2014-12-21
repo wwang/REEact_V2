@@ -44,6 +44,7 @@ __thread struct flexpth_thread_info* self;
  */
 __thread long long barrier_idx; 
 
+
 /*
  * New threads are created to run this wrapper function first. This wrapper
  * function then calls the application's thread function
@@ -118,7 +119,6 @@ static int assign_core(struct flexpth_core_list *cl)
 	return core_id;
 }
 
-
 /*
  * create a new pthread
  */
@@ -143,6 +143,21 @@ int flexpth_create_thread(pthread_t *thread, pthread_attr_t *attr,
 		       ret_val);
 		return EAGAIN;
 	}
+
+	/*
+	 * special handling for main thread; if the main thread uses the 
+	 * same thread function as the worker threads, update the
+	 * thread function of the main thread
+	 */ 
+	if(fh->control_main_thr == 1){
+		DPRINTF("update main thread function to 0x%08x\n", start_routine);
+		ret_val = flexpth_keeper_update_thread_func(rh, 0,
+							    start_routine);
+		if(ret_val != 0)
+			LOGERR("failed to update main thread function\n");
+		
+		fh->control_main_thr = 2;
+	}
 	
 	/*
 	 * create the new thread
@@ -152,3 +167,85 @@ int flexpth_create_thread(pthread_t *thread, pthread_attr_t *attr,
 				   (void*)tinfo);
 	/* return real_pthread_create(thread, attr, start_routine, arg); */
 }
+
+
+/*
+ * put main thread under control
+ */
+int flexpth_control_main_thr(void *data)
+{
+	struct reeact_data *rh = (struct reeact_data*)data;
+	struct flexpth_data *fh;
+	cpu_set_t cores;
+	struct flexpth_thread_info *tinfo;
+	int core_id;
+	int ret_val;
+
+	if(rh == NULL)
+		return 1;
+	fh = (struct flexpth_data*)rh->policy_data;
+
+	if(fh == NULL || !fh->control_main_thr)
+		return 1;
+
+	/*
+	 * add thread to thread info
+	 */
+	core_id = assign_core((struct flexpth_core_list*)fh->core_list);
+	if(fh->control_main_thr != 1){
+		/*
+		 * if fh->control_main_thr is not 1, then we use
+		 * fh->control_main_thr as main thread's thread function address
+		 */
+		DPRINTF("add main thread with thread function 0x%08x\n", 
+			fh->control_main_thr);
+		ret_val = flexpth_keeper_add_thread((void*)rh, core_id, 
+						    (void*)fh->control_main_thr,
+						    &tinfo);
+	}
+	else{
+		/*
+		 * if fh->control_main_thr is 1, worker thread function is used 
+		 * as main thread function. Therefore, I have to postpone adding
+		 * main thread's thread function information
+		 */
+		DPRINTF("add main thread with no thread function\n");
+		ret_val = flexpth_keeper_add_thread_nofunc((void*)rh, core_id,
+							   &tinfo);
+	}
+	self = tinfo;
+
+	if(ret_val != 0){
+		LOGERR("failed to add main thread to thread keeper (%d)\n",
+		       ret_val);
+		return 3;
+	}
+
+	/*
+	 * get thread id
+	 */
+	self->tid = gettid();
+
+	/*
+	 * pin thread to core
+	 */
+	CPU_ZERO(&cores);
+	CPU_SET(self->core_id, &cores);
+	ret_val = sched_setaffinity(self->tid, sizeof(cpu_set_t), &cores);
+	if(ret_val != 0){
+		LOGERRX("Unable to pin main thread (%d) to core %d\n", 
+			self->tid);
+		return 2;
+	}
+
+	/*
+	 * set the barrier index thread local storage; no matter how main thread
+	 * is handled, its thread function will always be the first one, i.e, 
+	 * fidx is always 0, so there is no need to change barrier_idx after 
+	 * setting it here.
+	 */
+	barrier_idx = (((long long)self->fidx) << 32) | self->core_id;	
+	
+	return 0;
+}
+

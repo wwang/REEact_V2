@@ -53,6 +53,12 @@ int flexpth_init(void *data)
 	flexpth_mutex_internal_init(data);
 	flexpth_cond_internal_init(data);
 
+	/*
+	 * add main thread under-control per user's request
+	 */
+	if(fh->control_main_thr)
+		flexpth_control_main_thr(data);
+
 	return 0;
 }
 

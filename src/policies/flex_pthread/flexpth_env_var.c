@@ -95,6 +95,35 @@ int flexpth_parse_core_list(struct reeact_data *rh)
 
 
 /*
+ * parsing the environment variable that controls the handling of main thread
+ * Input parameters
+ *     rh: REEact data
+ *
+ * Return values:
+ *     0: success
+ */
+int flexpth_parse_main_thread_handling(struct reeact_data *rh)
+{
+	char *env;
+	struct flexpth_data *fh = (struct flexpth_data*)rh->policy_data;
+
+	fh->control_main_thr = 0;
+	env = getenv(FLEXPTH_MAIN_THR_HANDLING);
+
+	if(env != NULL)
+		/* environment variable not set */
+		fh->control_main_thr = strtoull(env, NULL, 0);
+	if(fh->control_main_thr == 2) 
+		/* 2 is treated the same as 1 */
+		fh->control_main_thr = 1;
+
+	DPRINTF("Main thread control flag: 0x%08x\n", fh->control_main_thr); 
+
+	return 0;
+}
+
+
+/*
  * Read and parse the environment variables
  */
 int flexpth_parse_env_vars(void *data)
@@ -106,6 +135,7 @@ int flexpth_parse_env_vars(void *data)
 	}
 
 	flexpth_parse_core_list((struct reeact_data*)data);
+	flexpth_parse_main_thread_handling((struct reeact_data*)data);
 
 	return 0;
 }

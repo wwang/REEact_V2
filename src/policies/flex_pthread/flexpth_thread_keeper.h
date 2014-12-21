@@ -75,7 +75,8 @@ int flexpth_thread_keeper_init(void *data);
 int flexpth_thread_keeper_cleanup(void *data);
 
 /*
- * Add the information of a new thread
+ * Add the information of a new thread; The nofunc version add
+ * a thread with unknown thread function
  * Input parameters:
  *     data: the REEact handle (struct reeact_data)
  *     core_id: the id of the core to run thread
@@ -90,6 +91,22 @@ int flexpth_thread_keeper_cleanup(void *data);
  */
 int flexpth_keeper_add_thread(void *data, int core_id, void* func,
 			      struct flexpth_thread_info **tinfo);
+int flexpth_keeper_add_thread_nofunc(void *data, int core_id,
+				     struct flexpth_thread_info **tinfo);
+
+/*
+ * Update the thread function of thread
+ * Input parameters:
+ *     data: the REEact handle (struct reeact_data)
+ *     tidx: thread index
+ *     func: the thread function address
+ * Return value:
+ *     0: success
+ *     1: wrong parameters
+ *     2: error finding information for this thread in keeper
+ *     3: memory allocation error
+ */
+int flexpth_keeper_update_thread_func(void *data, int tidx, void *func);
 
 /*
  * Remove the information of a thread

@@ -17,6 +17,16 @@ struct flexpth_data{
                              // a pointer to struct flexpth_thread_keeper
 	void *core_list; // the list of cores to use.
 	void *barriers; // pointer to all barriers struct flexpth_all_tree_bars
+	/*
+	 * flags controls whether to control main thread; 
+	 * if 0, main thread is not controlled; 
+	 * if 1, main thread is treated as using the thread functions of the 
+	 *       first created worker thread; but this thread function address
+	 *       is undetermined yet;
+	 * if 2, like 1, except the thread function address is determined;
+	 * all other values represents the true main thread function address
+	 */
+	unsigned long long control_main_thr;  
 };
 
 /*
@@ -56,6 +66,18 @@ int flexpth_cleanup(void *data);
  */
 int flexpth_create_thread(pthread_t *thread, pthread_attr_t *attr,
 			  void *(*start_routine)(void *), void *arg);
+
+/*
+ * Add the main thread under-control
+ * Input parameter:
+ *     data: a pointer to REEact data (struct reeact_data *)
+ * Return value:
+ *     0: success
+ *     1: data is NULL
+ *     2: unable to set core affinity
+ *     3: unable adding main thread to thread keeper
+ */
+int flexpth_control_main_thr(void *data);
 
 
 /*

@@ -138,14 +138,11 @@ int flexpth_distribute_cond_init(void *data, struct flexpth_cond *cond,
 	for(i = 1; i < _bar_slist.len; i++){
 #if FLEXPTH_COND_DISTRIBUTE_LEVEL > 1
 		/* static distribution*/
-		DPRINTF("static distribution\n");
 		conds[i].parent = NULL;
 #elif FLEXPTH_COND_TWO_LEVEL_DISTRIBUTION == 1
 		/* use two level distribution */
-		DPRINTF("two level distribution\n");
 		conds[i].parent = conds;
 #else
-		DPRINTF("multiple-level distribution\n");
 		/* use multiple level distribution */
 		conds[i].parent = conds +  _bar_slist.elements[i];
 #endif
@@ -266,18 +263,15 @@ int flexpth_cond_wait(pthread_cond_t *cv, pthread_mutex_t *m)
 	/* find the conditional variable for this core */
 #if FLEXPTH_COND_DISTRIBUTE_LEVEL == 0
 	/* fully distribution */
-	DPRINTF("full distribute\n");
 	core_id = barrier_idx & 0x00000000ffffffff; 
 	fcv  = (fastsync_cond*)cond->conds + _core_to_list_map[core_id];	
 	ret_val = fastsync_cond_wait(fcv, (fastsync_mutex*)mutex->mutex);
 #elif FLEXPTH_COND_DISTRIBUTE_LEVEL == 1
 	/* no distribution */
-	DPRINTF("no distribute\n");
 	ret_val = fastsync_cond_wait((fastsync_cond*)cond->conds, 
 				     (fastsync_mutex*)mutex->mutex);
 #else 
 	/* static distribution */
-	DPRINTF("static distribute\n");
 	core_id = (barrier_idx & 0x00000000ffffffff) %
          	FLEXPTH_COND_DISTRIBUTE_LEVEL;
 	fcv  = (fastsync_cond*)cond->conds + core_id;

@@ -331,3 +331,112 @@ int flexpth_keeper_get_next_func(void *data, void **search_handle,
 	return 0;
 }
 
+
+/*
+ * Add the information of a new thread
+ */
+int flexpth_keeper_add_thread_nofunc(void *data, int core_id,
+				     struct flexpth_thread_info **tinfo_out)
+{
+	struct reeact_data *rh = (struct reeact_data*)data;
+	struct flexpth_data *fh = (struct flexpth_data*)rh->policy_data;
+	struct flexpth_thread_keeper *k;
+	struct flexpth_thread_info *tinfo;
+
+	if(data == NULL || tinfo_out == NULL){
+		LOGERR("wrong parameter: data (%p) and tinfo (%p)\n",
+		       data, tinfo_out);
+		return 1;
+	}
+	
+	k = (struct flexpth_thread_keeper*)fh->thread_keeper;
+	if(k == NULL || k->threads == NULL  || k->funcs == NULL){
+		LOGERRX("thread keeper (%p) or thread table (%p) or "
+			"function table (%p) is NULL\n", k, k->threads, 
+			k->funcs);
+		return 1;
+	}
+
+	// create a new record for the thread
+	*tinfo_out = tinfo = (struct flexpth_thread_info*)
+		calloc(1, sizeof(struct flexpth_thread_info));
+	if(tinfo == NULL){
+		LOGERRX("unable allocate space for thread info\n");
+		return 2;
+	}
+	tinfo->tidx = cur_tidx++;
+	tinfo->core_id = core_id;
+	tinfo->func = NULL;
+	tinfo->fidx = 0;
+	save_val_simple_hashx(k->threads, tinfo->tidx, 1, 0, (void*)tinfo);
+	k->thread_cnt++;
+
+	return 0;
+}
+
+
+int flexpth_keeper_update_thread_func(void *data, int tidx, void *func)
+{
+	struct reeact_data *rh = (struct reeact_data*)data;
+	struct flexpth_data *fh = (struct flexpth_data*)rh->policy_data;
+	struct flexpth_thread_keeper *k;
+	int ret_val;
+	struct flexpth_thread_info *tinfo;
+	struct flexpth_thr_func_info *finfo;
+
+	if(data == NULL ){
+		LOGERR("wrong parameter: data (%p)", data);
+		return 1;
+	}
+	
+	k = (struct flexpth_thread_keeper*)fh->thread_keeper;
+	if(k == NULL || k->threads == NULL  || k->funcs == NULL){
+		LOGERRX("thread keeper (%p) or thread table (%p) or "
+			"function table (%p) is NULL\n", k, k->threads, 
+			k->funcs);
+		return 1;
+	}
+
+	// locate the thread record for 
+	ret_val = get_val_simple_hashx(k->threads, tidx, 1, NULL, 
+				       (void**)&tinfo);
+	if(ret_val == 2){
+		// thread does not exists
+		LOGERR("thread %d not exists\n", tidx);
+		return 2;
+	}
+
+	// locate the function record for func
+	ret_val = get_val_simple_hashx(k->funcs, (long long)func, 1, NULL,
+				       (void**)&finfo);
+	if(ret_val == 2){
+		// this is the first thread for this function
+		finfo = (struct flexpth_thr_func_info*)
+			calloc(1, sizeof(struct flexpth_thr_func_info));
+		if(finfo == NULL){
+			LOGERRX("unable allocate space for function info\n");
+			return 3;
+		}
+		finfo->func = func;
+		finfo->fidx = cur_fidx++;
+		save_val_simple_hashx(k->funcs, (long long)func, 1, 0, 
+				      (void*)finfo);
+		k->func_cnt++;
+		// update barriers
+		flexpth_barrier_new_func(data, (void *)finfo);
+	}
+
+
+	tinfo->func = func;
+	tinfo->fidx = finfo->fidx;
+
+	// add thread information to function information
+	finfo->thread_cnt++;
+	finfo->thread_per_core[tinfo->core_id]++;
+
+	// update barriers
+	flexpth_barrier_new_thread(data, (void *)tinfo);
+
+	return 0;
+}
+

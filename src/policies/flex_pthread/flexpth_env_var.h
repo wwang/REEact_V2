@@ -8,9 +8,24 @@
 #define __FLEX_PTHREAD_ENV_VAR_H__
 
 /*
- * names of the environment variables
+ * BEGIN: names of the environment variables
+ */
+/*
+ * the list of cores to use, comma separated list, can have dashed ranges
  */
 #define FLEXPTH_CORE_LIST_ENV "FLEXPTH_CORES"
+/*
+ * whether to control main thread:
+ * 0 or unset: do not control main thread
+ * 1: control main thread, and use worker thread's function address as
+ *    main thread's function address
+ * 2: same as above
+ * other values: the function address of main thread, can be hex values
+ */
+#define FLEXPTH_MAIN_THR_HANDLING "FLEXPTH_MAIN_THR"
+/*
+ * END: names of the environment variables
+ */
 
 
 /*
