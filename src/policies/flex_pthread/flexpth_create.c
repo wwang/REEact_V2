@@ -79,7 +79,7 @@ void * flexpth_thread_wrapper(void *arg)
 	ret_val = sched_setaffinity(self->tid, sizeof(cpu_set_t), &cores);
 	if(ret_val != 0)
 		LOGERRX("Unable to pin %d'th thread (%d) to core %d\n", 
-			self->tidx, self->tid);
+			self->tidx, self->tid, self->core_id);
 
 	/*
 	 * set the barrier index thread local storage
@@ -234,7 +234,7 @@ int flexpth_control_main_thr(void *data)
 	ret_val = sched_setaffinity(self->tid, sizeof(cpu_set_t), &cores);
 	if(ret_val != 0){
 		LOGERRX("Unable to pin main thread (%d) to core %d\n", 
-			self->tid);
+			self->tid, core_id);
 		return 2;
 	}
 
