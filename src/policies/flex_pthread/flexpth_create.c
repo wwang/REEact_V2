@@ -55,6 +55,7 @@ void * flexpth_thread_wrapper(void *arg)
 	int ret_val;
 	void *thread_return;
 	thread_function start_routine;
+	struct sched_param sched_param = {0};
 
 	self = (struct flexpth_thread_info*)arg;
 
@@ -80,6 +81,13 @@ void * flexpth_thread_wrapper(void *arg)
 	if(ret_val != 0)
 		LOGERRX("Unable to pin %d'th thread (%d) to core %d\n", 
 			self->tidx, self->tid, self->core_id);
+	/*
+	 * set to use batch scheduling to reduce context switch frequencies
+	 */
+	if(sched_setscheduler(0, SCHED_BATCH, &sched_param)){
+		LOGERRX("thread %d failed to set sched_batch: ", self->tidx);
+	}
+
 
 	/*
 	 * set the barrier index thread local storage
