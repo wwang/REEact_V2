@@ -109,7 +109,7 @@ int fastsync_barrier_init(fastsync_barrier  *barrier,
  *     0: success
  *     PTHREAD_BARRIER_SERIAL_THREAD: success, this is also the thread that 
  *                                    resets the barrier
- *     -1: unreachable code executed; major error
+ *     1: unreachable code executed; major error
  */
 int fastsync_barrier_wait(fastsync_barrier *barrier);
 /*
@@ -167,13 +167,16 @@ typedef struct _fastsync_mutex_attr{
 int fastsync_mutex_init(fastsync_mutex *mutex, const fastsync_mutex_attr *attr);
 
 /*
- * Lock a fastsync mutex; block if lock not acquired.
+ * Lock a fastsync mutex; block if lock not acquired in the 
+ * normal lock version; return immediately in trylock version
  *     mutex: the mutex to lock
  * Return value:
  *     0: success
  *     1: mutex is NULL
+ *     EBUSY: unable to lock in trylock
  */
 int fastsync_mutex_lock(fastsync_mutex *mutex);
+int fastsync_mutex_trylock(fastsync_mutex *mutex);
 
 /*
  * Unlock a fastsync mutex.

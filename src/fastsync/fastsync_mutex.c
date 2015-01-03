@@ -35,6 +35,7 @@
 #include <sched.h>
 #include <limits.h>
 #include <linux/futex.h>
+#include <errno.h>
 
 #define _GNU_SOURCE
 #include <unistd.h>
@@ -131,4 +132,24 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 
 
 	return 0;
+}
+
+
+/*
+ * Lock a fastsync mutex
+ */
+int fastsync_mutex_trylock(fastsync_mutex *mutex)
+{
+	int locked;
+	
+	if(mutex == NULL)
+		return 1;
+	
+	/* try to lock the mutex */
+	locked = atomic_for(&(mutex->state), 1) & 1;
+	if(!locked){
+		return 0;
+	}
+	
+	return EBUSY;
 }
