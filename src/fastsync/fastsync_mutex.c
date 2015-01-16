@@ -70,6 +70,8 @@ int fastsync_mutex_lock(fastsync_mutex *mutex)
 {
 	int locked;
 	int i;
+
+	//sched_yield();
 	
 	if(mutex == NULL)
 		return 1;
@@ -141,6 +143,8 @@ int fastsync_mutex_unlock(fastsync_mutex *mutex)
 int fastsync_mutex_trylock(fastsync_mutex *mutex)
 {
 	int locked;
+
+	//sched_yield();
 	
 	if(mutex == NULL)
 		return 1;

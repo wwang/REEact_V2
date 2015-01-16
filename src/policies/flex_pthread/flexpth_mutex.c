@@ -216,18 +216,33 @@ int flexpth_mutex_destroy(pthread_mutex_t *m)
 		// destroying a non-fastsync mutex
 		return 0;
 
-	// TODO: implement the mutex destroy
-	LOGERR("FLEXPTH mutex destroy not implemented\n");
+	if(mutex->mutex != NULL)
+		free(mutex->mutex);
+
+	mutex->mutex = NULL;
 	
 	return 0;
 }
 
 int flexpth_mutex_trylock(pthread_mutex_t *m)
 {
-	// TODO: implement the mutex try lock
-	LOGERR("FLEXPTH mutex try lock not implemented\n");
+	int ret_val;
+	struct flexpth_mutex *mutex = (struct flexpth_mutex*)m;
 
-	return EINVAL;
+	if(mutex == NULL)
+		return EINVAL;
+
+	if(mutex->magic_number != FLEXPTH_MUTEX_MAGIC_NUMBER1){
+		ret_val = flexpth_mutex_init_critical(mutex);
+		if(ret_val){
+			// unable to initialized the mutex
+			LOGERR("Unable to initialized flexpth mutex\n");
+			return EINVAL;
+		}
+	}
+	
+	/* lock the mutex */
+	return fastsync_mutex_trylock((fastsync_mutex*)mutex->mutex);
 }
 
 int flexpth_mutex_timedlock(pthread_mutex_t *m, 
