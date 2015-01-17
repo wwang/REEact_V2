@@ -5,10 +5,15 @@
  * Author: Wei Wang <wwang@virginia.edu>
  *
  */
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <pthread.h>
+#include <dlfcn.h>
 
 #include "../reeact.h"
 #include "../utils/reeact_utils.h"
 #include "../pthread_hooks/pthread_hooks_originals.h"
+#include "../hooks/gomp_hooks/gomp_hooks_originals.h"
 
 #ifdef _FLEX_PTHREAD_POLICY_
 /*
@@ -134,6 +139,9 @@ int reeact_policy_pthread_mutex_init(void *mutex, void *attr)
 int reeact_policy_pthread_mutex_lock(void *mutex)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
+	if(real_pthread_mutex_lock == NULL)
+		real_pthread_mutex_lock = dlsym(RTLD_NEXT, 
+						"pthread_mutex_lock");
 	return real_pthread_mutex_lock((pthread_mutex_t*)mutex);
 #elif _FLEX_PTHREAD_POLICY_
 	return flexpth_mutex_lock((pthread_mutex_t*)mutex);
@@ -172,6 +180,9 @@ int reeact_policy_pthread_mutex_timedlock(void *mutex, void *abs_timeout)
 int reeact_policy_pthread_mutex_unlock(void *mutex)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
+	if(real_pthread_mutex_unlock == NULL)
+		real_pthread_mutex_unlock = dlsym(RTLD_NEXT, 
+						  "pthread_mutex_unlock");
 	return real_pthread_mutex_unlock((pthread_mutex_t*)mutex);
 #elif _FLEX_PTHREAD_POLICY_
 	return flexpth_mutex_unlock((pthread_mutex_t*)mutex);
@@ -205,7 +216,7 @@ int reeact_policy_pthread_mutex_destroy(void *mutex)
 #endif	
 }
 
-int react_policy_pthread_cond_init(void *cond, void *attr)
+int reeact_policy_pthread_cond_init(void *cond, void *attr)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_cond_init((pthread_cond_t*)cond, 
@@ -219,7 +230,7 @@ int react_policy_pthread_cond_init(void *cond, void *attr)
 #endif	
 }
 
-int react_policy_pthread_cond_signal(void *cond)
+int reeact_policy_pthread_cond_signal(void *cond)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_cond_signal((pthread_cond_t*)cond);
@@ -231,7 +242,7 @@ int react_policy_pthread_cond_signal(void *cond)
 #endif	
 }
 
-int react_policy_pthread_cond_broadcast(void *cond)
+int reeact_policy_pthread_cond_broadcast(void *cond)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_cond_broadcast((pthread_cond_t*)cond);
@@ -243,7 +254,7 @@ int react_policy_pthread_cond_broadcast(void *cond)
 #endif	
 }
 
-int react_policy_pthread_cond_destroy(void *cond)
+int reeact_policy_pthread_cond_destroy(void *cond)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_cond_destroy((pthread_cond_t*)cond);
@@ -255,7 +266,7 @@ int react_policy_pthread_cond_destroy(void *cond)
 #endif	
 }
 
-int react_policy_pthread_cond_wait(void *cond, void *mutex)
+int reeact_policy_pthread_cond_wait(void *cond, void *mutex)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_cond_wait((pthread_cond_t*)cond,
@@ -282,5 +293,15 @@ int react_policy_pthread_timedwait(void *cond, void *mutex, void *abstime)
 #else
 	// TODO: add user-policy here
 	return 0;
+#endif	
+}
+
+void reeact_policy_GOMP_barrier()
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_GOMP_barrier();
+#else
+	// TODO: add user-policy here
+	return;
 #endif	
 }

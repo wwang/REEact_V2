@@ -96,11 +96,17 @@ int reeact_policy_pthread_mutex_destroy(void *mutex);
  * Return values:
  *     same as corresponding pthread_mutex functions or by user definition
  */
-int react_policy_pthread_cond_init(void *cond, void *attr);
-int react_policy_pthread_cond_signal(void *cond);
-int react_policy_pthread_cond_broadcast(void *cond);
-int react_policy_pthread_cond_destroy(void *cond);
-int react_policy_pthread_cond_wait(void *cond, void *mutex);
-int react_policy_pthread_timedwait(void *cond, void *mutex, void *abstime);
+int reeact_policy_pthread_cond_init(void *cond, void *attr);
+int reeact_policy_pthread_cond_signal(void *cond);
+int reeact_policy_pthread_cond_broadcast(void *cond);
+int reeact_policy_pthread_cond_destroy(void *cond);
+int reeact_policy_pthread_cond_wait(void *cond, void *mutex);
+int reeact_policy_pthread_timedwait(void *cond, void *mutex, void *abstime);
+
+
+/*
+ * gomp barrier functions
+ */
+void reeact_policy_GOMP_barrier();
 
 #endif

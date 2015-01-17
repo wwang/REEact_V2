@@ -14,6 +14,7 @@
 #include <dlfcn.h>
 
 #include "pthread_hooks.h"
+#include "../utils/reeact_utils.h"
 
 /* 
  * real pthread functions 
@@ -131,7 +132,7 @@ int reeact_pthread_hooks_init(void *data)
 
 
 	if ((error = dlerror()) != NULL)  {
-		fprintf(stderr, "Error opening original pthread functions with "
+		LOGERR("Error opening original pthread functions with "
 			"error :%s\n", error);
 		ret_val = REEACT_PTHREAD_HOOKS_ERR_LOAD_ORIGINAL_FUNCTION;
 		goto error;
