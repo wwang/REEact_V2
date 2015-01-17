@@ -5,8 +5,9 @@ LIBS= -lpthread -ldl -lcommontoolx
 REEACTSRC=reeact.c ./utils/reeact_log.c ./utils/reeact_topology.c
 FASTSYNCSRC=./fastsync/fastsync_barrier.c ./fastsync/fastsync_mutex.c ./fastsync/fastsync_cond.c
 PTHHOOKSRC=./pthread_hooks/pthread_hooks.c ./pthread_hooks/pthread_create.c ./pthread_hooks/pthread_barrier.c ./pthread_hooks/pthread_mutex.c ./pthread_hooks/pthread_cond.c
+HOOKSRC=./hooks/gomp_hooks/gomp_hooks.c ./hooks/gomp_hooks/gomp_barrier.c
 POLICYSRC=./policies/reeact_policy.c
-SOURCES=$(REEACTSRC) $(FASTSYNCSRC) $(PTHHOOKSRC) $(POLICYSRC)
+SOURCES=$(REEACTSRC) $(FASTSYNCSRC) $(PTHHOOKSRC) $(HOOKSRC) $(POLICYSRC) 
 BUILD=build
 OBJECTS=$(addprefix $(BUILD)/, $(SOURCES:.c=.o))
 DEPDIR=.depends

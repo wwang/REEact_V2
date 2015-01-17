@@ -15,6 +15,7 @@
 #include "reeact.h"
 #include "./utils/reeact_utils.h"
 #include "./pthread_hooks/pthread_hooks.h"
+#include "./hooks/gomp_hooks/gomp_hooks.h"
 #include "./policies/reeact_policy.h"
 
 struct reeact_data *reeact_handle = NULL;
@@ -120,6 +121,12 @@ void reeact_init(void)
 	ret_val = reeact_pthread_hooks_init((void*)reeact_handle);
 	if(ret_val != 0)
 		LOGERR("Error initializing pthread hooks with error %d\n",
+		       ret_val);
+
+	// gomp hooks initialization
+	ret_val = reeact_gomp_hooks_init((void*)reeact_handle);
+	if(ret_val != 0)
+		LOGERR("Error initializing gomp hooks with error %d\n",
 		       ret_val);
 	
 	// user policy initialization

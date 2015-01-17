@@ -1,5 +1,5 @@
 /*
- * HEADER file that defines wrappers of the original pthread functions. Include
+ * Header file that defines wrappers of the original pthread functions. Include
  * this file if there is a need to call the real pthread functions.
  *
  * Author: Wei Wang <wwang@virginia.edu>
