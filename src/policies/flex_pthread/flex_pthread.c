@@ -59,6 +59,12 @@ int flexpth_init(void *data)
 	if(fh->control_main_thr)
 		flexpth_control_main_thr(data);
 
+
+	/*
+	 * add barrier support for Gnu OpenMP
+	 */
+	flexpth_gomp_barrier_support_init(data);
+
 	return 0;
 }
 

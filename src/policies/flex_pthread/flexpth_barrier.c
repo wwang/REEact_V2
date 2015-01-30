@@ -36,6 +36,7 @@
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include <common_toolx.h>
 #include <simple_hashx.h>
@@ -48,6 +49,8 @@
 #include "flex_pthread.h"
 #include "flexpth_barrier.h"
 #include "flexpth_thread_keeper.h"
+
+#include "../../hooks/gomp_hooks/gomp_hooks.h"
 
 /*
  * The static list that represents the tree structure of the tree-barrier,
@@ -160,7 +163,6 @@ int flexpth_barrier_internal_init(void *data)
 		((struct flexpth_all_barriers*)(fh->barriers))->tbars[i].status
 			= FLEXPTH_BARRIER_STATE_INVALID;
 	}
-	       
 
 	return 0;
 }
@@ -670,3 +672,93 @@ int flexpth_barrier_wait(pthread_barrier_t *barrier)
 	
 	/* unreachable */
 }
+
+/*
+ * hooks for gomp barrier functions
+ */
+
+/*
+ * barrier for GNU OpenMP, see the comments in flexpth_barrier_interal_init for
+ * more information.
+ */
+pthread_barrier_t *gomp_bar;
+int flexpth_gomp_barrier_support_init(void *data)
+{
+	struct reeact_data *rh = (struct reeact_data*)data;
+	struct flexpth_data *fh = (struct flexpth_data*)rh->policy_data;
+	
+	/*
+	 * Special treatment for GNU Openmp library: since GNU Openmp inlined 
+	 * most barrier functions, I cannot hook into interval barrier
+	 * functions. The only function I can hook is GOMP_barrier, which does
+	 * not have any parameters, i.e., no address to the barrier data 
+	 * structure. Therefore, I create a global barrier to be solely used
+	 * within GOMP_barrier. 
+	 *
+	 * In GNU Openmp implementation, GOMP_barrier use TLS to determine the
+	 * correct barrier data structure to use, which is one barrier per
+	 * thread team. Here, I assume only one thread team is created, thus
+	 * one barrier is enough. For a completely correct implementation, I
+	 * should create one barrier for each thread team. Check the notes in
+	 * this file on GOMP_barrier implementation about how to determine 
+	 * thread team within the GOMP_barrier.
+	 *
+	 * TODO: make GOMP barrier per team
+	 */
+	/*
+	 * Get openmp thread count
+	 */
+	gomp_bar = NULL;
+	if(fh->omp_thr_cnt != 0){
+		gomp_bar = 
+			(pthread_barrier_t*)malloc(sizeof(pthread_barrier_t));
+		flexpth_barrier_init(gomp_bar, NULL, fh->omp_thr_cnt);
+	}
+	else
+		return 1;
+	
+
+	return 0;
+}
+
+void flexpth_GOMP_barrier()
+{
+	if(gomp_bar == NULL){
+		LOGERR("GOMP Bar is NULL\n");
+		return;
+	}
+
+	flexpth_barrier_wait(gomp_bar);
+
+	return;
+}
+
+/*
+ * The following code should be used to determine the thread team address, and
+ * team's corresponding barrier address. Since each thread team has one barrier,
+ * barriers should be created per team. Use the following code to determine team
+ * for the calling thread. Note that the tls_offset is different on Linux 
+ * installations. Get the correct value needs to objdump the libgomp.so, find 
+ * the GOMP_barrier function, extract the RIP-addressing offset from the first
+ * instruction of GOMP_barrier function.
+ */
+/* extern void (*real_GOMP_barrier)(void); */
+/* void flexpth_GOMP_barrier() */
+/* { */
+/* 	unsigned long long tls_offset = 0x208d71; */
+/* 	unsigned long long tls_addr = real_GOMP_barrier + 0x7 + tls_offset; */
+/* 	unsigned long long team_addr = 0; */
+/* 	unsigned long long team_bar_addr = 0; */
+/* 	gomp_barrier_t *bar; */
+	
+/* 	 __asm__("mov (%1), %%rax;" */
+/* 		"mov %%fs:0x10(%%rax), %0;" */
+/* 		:"=r"(team_addr): "r"(tls_addr) : "%rax"); */
+/* 	team_bar_addr = team_addr + 0x80; */
+/* 	bar = (gomp_barrier_t*)team_bar_addr; */
+
+/* 	DPRINTF("flexpth_GOMP_barrier for team %p (count %d)\n", team_bar_addr,  */
+/* 		bar->total); */
+
+/* 	return real_GOMP_barrier(); */
+/* } */

@@ -27,6 +27,7 @@ struct flexpth_data{
 	 * all other values represents the true main thread function address
 	 */
 	unsigned long long control_main_thr;  
+	int omp_thr_cnt; // the number of threads for OpenMP
 };
 
 /*
@@ -132,6 +133,9 @@ int flexpth_cond_wait(pthread_cond_t *cond, pthread_mutex_t *m);
 int flexpth_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *m, 
 			   const struct timespec *abs_timeout);
 
-
+/*
+ * GOMP barrier functions
+ */
+void flexpth_GOMP_barrier();
 
 #endif 

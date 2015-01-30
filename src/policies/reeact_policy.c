@@ -300,6 +300,8 @@ void reeact_policy_GOMP_barrier()
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_GOMP_barrier();
+#elif _FLEX_PTHREAD_POLICY_
+	return flexpth_GOMP_barrier();
 #else
 	// TODO: add user-policy here
 	return;

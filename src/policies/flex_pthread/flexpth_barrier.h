@@ -139,5 +139,16 @@ int flexpth_barrier_new_func(void *data, void *finfo);
  */
 int flexpth_barrier_new_thread(void *data, void *finfo);
 
+/*
+ * Initialization function for gomp barrier support
+ * Input parameters:
+ *     data: a pointer to the REEact data
+ * Return values:
+ *     0: success
+ *     1: OpenMP thread count unknown
+ */
+int flexpth_gomp_barrier_support_init(void *data);
+
+
 
 #endif

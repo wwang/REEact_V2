@@ -20,7 +20,7 @@
 
 void GOMP_barrier()
 {
-	DPRINTF("GOMP_barrier called\n");
+       	/* DPRINTF("GOMP_barrier called\n"); */
 
 	return reeact_policy_GOMP_barrier();
 }

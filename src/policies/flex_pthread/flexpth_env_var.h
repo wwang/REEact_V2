@@ -24,6 +24,11 @@
  */
 #define FLEXPTH_MAIN_THR_HANDLING "FLEXPTH_MAIN_THR"
 /*
+ * OpenMP thread count variable
+ */
+#define OPENMP_THREAD_COUNT_ENV "OMP_NUM_THREADS"
+
+/*
  * END: names of the environment variables
  */
 
@@ -35,6 +40,7 @@ struct flexpth_core_list{
 	int *cores;
 	int core_cnt;
 };
+
 /*
  * Read and parse the environment variables
  *
