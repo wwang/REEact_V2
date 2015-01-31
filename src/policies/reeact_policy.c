@@ -232,7 +232,7 @@ int reeact_policy_pthread_cond_wait(void *cond, void *mutex)
 #endif	
 }
 
-int react_policy_pthread_timedwait(void *cond, void *mutex, void *abstime)
+int reeact_policy_pthread_cond_timedwait(void *cond, void *mutex, void *abstime)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
 	return real_pthread_cond_timedwait((pthread_cond_t*)cond,
@@ -244,12 +244,172 @@ int react_policy_pthread_timedwait(void *cond, void *mutex, void *abstime)
 #endif	
 }
 
-void reeact_policy_GOMP_barrier()
+/* void reeact_policy_GOMP_barrier() */
+/* { */
+/* #ifdef _REEACT_DEFAULT_POLICY_ */
+/* 	return real_GOMP_barrier(); */
+/* #else */
+/* 	// TODO: add user-policy here */
+/* 	return; */
+/* #endif	 */
+/* } */
+void reeact_gomp_barrier_init(void *bar, unsigned count)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_GOMP_barrier();
+	return real_gomp_barrier_init(bar, count);
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
+}
+
+void reeact_gomp_barrier_reinit(void *bar, unsigned count)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_reinit(bar, count);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_barrier_destroy(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_destroy(bar);
+	return;
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_barrier_wait(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_wait(bar);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_barrier_wait_last(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_wait_last(bar);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_barrier_wait_end(void *bar, unsigned int state)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_wait_end(bar, state);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_wait(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_wait(bar);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_wait_end(void *bar, unsigned int state)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_wait_end(bar, state);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_wake(void *bar, int count)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_wake(bar, count);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_set_task_pending(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_set_task_pending(bar);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_clear_task_pending(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	real_gomp_team_barrier_clear_task_pending(bar);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_set_waiting_for_tasks(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_set_waiting_for_tasks(bar);
+#else
+	// TODO: add user-policy here
+	return;
+#endif	
+}
+
+void reeact_gomp_team_barrier_done(void *bar, unsigned int state)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_done(bar, state);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_gomp_team_barrier_waiting_for_tasks(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_team_barrier_waiting_for_tasks(bar);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+int reeact_gomp_barrier_last_thread(unsigned int state)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_last_thread(state);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif	
+}
+
+unsigned int reeact_gomp_barrier_wait_start(void *bar)
+{
+#ifdef _REEACT_DEFAULT_POLICY_
+	return real_gomp_barrier_wait_start(bar);
+#else
+	// TODO: add user-policy here
+	return 0;
+#endif		
 }

@@ -101,12 +101,28 @@ int reeact_policy_pthread_cond_signal(void *cond);
 int reeact_policy_pthread_cond_broadcast(void *cond);
 int reeact_policy_pthread_cond_destroy(void *cond);
 int reeact_policy_pthread_cond_wait(void *cond, void *mutex);
-int reeact_policy_pthread_timedwait(void *cond, void *mutex, void *abstime);
+int reeact_policy_pthread_cond_timedwait(void *cond, void *mutex, void *abstime);
 
 
 /*
  * gomp barrier functions
  */
-void reeact_policy_GOMP_barrier();
+//void reeact_policy_GOMP_barrier();
+void reeact_gomp_barrier_init(void *, unsigned);
+void reeact_gomp_barrier_reinit(void *, unsigned);
+void reeact_gomp_barrier_destroy(void *);
+void reeact_gomp_barrier_wait(void *);
+void reeact_gomp_barrier_wait_last(void *);
+void reeact_gomp_barrier_wait_end(void *, unsigned int);
+void reeact_gomp_team_barrier_wait(void *);
+void reeact_gomp_team_barrier_wait_end(void *, unsigned int);
+void reeact_gomp_team_barrier_wake(void *, int);
+void reeact_gomp_team_barrier_set_task_pending(void *);
+void reeact_gomp_team_barrier_clear_task_pending(void *);
+void reeact_gomp_team_barrier_set_waiting_for_tasks(void *);
+void reeact_gomp_team_barrier_done(void *, unsigned int);
+int reeact_gomp_team_barrier_waiting_for_tasks(void *);
+int reeact_gomp_barrier_last_thread(unsigned int);
+unsigned int reeact_gomp_barrier_wait_start(void *);
 
 #endif
