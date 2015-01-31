@@ -253,161 +253,179 @@ int reeact_policy_pthread_cond_timedwait(void *cond, void *mutex, void *abstime)
 /* 	return; */
 /* #endif	 */
 /* } */
-void reeact_gomp_barrier_init(void *bar, unsigned count)
+int reeact_gomp_barrier_init(void *bar, unsigned count)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_init(bar, count);
+	DPRINTF("%s called with bar %p, count %u\n", __FUNCTION__, bar, count);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_barrier_reinit(void *bar, unsigned count)
+int reeact_gomp_barrier_reinit(void *bar, unsigned count)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_reinit(bar, count);
+	DPRINTF("%s called with bar %p, count %u\n", __FUNCTION__, bar, count);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_barrier_destroy(void *bar)
+int reeact_gomp_barrier_destroy(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_destroy(bar);
-	return;
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_barrier_wait(void *bar)
+int reeact_gomp_barrier_wait(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_wait(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_barrier_wait_last(void *bar)
+int reeact_gomp_barrier_wait_last(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_wait_last(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_barrier_wait_end(void *bar, unsigned int state)
+int reeact_gomp_barrier_wait_end(void *bar, unsigned int state)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_wait_end(bar, state);
+	DPRINTF("%s called with bar %p and state %d\n", __FUNCTION__, bar, 
+		state);	
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_wait(void *bar)
+int reeact_gomp_team_barrier_wait(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_wait(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_wait_end(void *bar, unsigned int state)
+int reeact_gomp_team_barrier_wait_end(void *bar, unsigned int state)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_wait_end(bar, state);
+	DPRINTF("%s called with bar %p and state %d\n", __FUNCTION__, bar, 
+		state);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_wake(void *bar, int count)
+int reeact_gomp_team_barrier_wake(void *bar, int count)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_wake(bar, count);
+	DPRINTF("%s called with bar %p and count %d\n", __FUNCTION__, bar, count);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_set_task_pending(void *bar)
+int reeact_gomp_team_barrier_set_task_pending(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_set_task_pending(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_clear_task_pending(void *bar)
+int reeact_gomp_team_barrier_clear_task_pending(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	real_gomp_team_barrier_clear_task_pending(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_set_waiting_for_tasks(void *bar)
+int reeact_gomp_team_barrier_set_waiting_for_tasks(void *bar)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_set_waiting_for_tasks(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return;
 #endif	
 }
 
-void reeact_gomp_team_barrier_done(void *bar, unsigned int state)
+int reeact_gomp_team_barrier_done(void *bar, unsigned int state)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_done(bar, state);
+	DPRINTF("%s called with bar %p and state %d\n", __FUNCTION__, bar, 
+		state);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return 0;
 #endif	
 }
 
-int reeact_gomp_team_barrier_waiting_for_tasks(void *bar)
+int reeact_gomp_team_barrier_waiting_for_tasks(void *bar, int *ret_val)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_team_barrier_waiting_for_tasks(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return 0;
 #endif	
 }
 
-int reeact_gomp_barrier_last_thread(unsigned int state)
+int reeact_gomp_barrier_last_thread(unsigned int state, int *ret_val)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_last_thread(state);
+	DPRINTF("%s called with state %d\n", __FUNCTION__, state);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return 0;
 #endif	
 }
 
-unsigned int reeact_gomp_barrier_wait_start(void *bar)
+int reeact_gomp_barrier_wait_start(void *bar, unsigned int *ret_val)
 {
 #ifdef _REEACT_DEFAULT_POLICY_
-	return real_gomp_barrier_wait_start(bar);
+	DPRINTF("%s called with bar %p\n", __FUNCTION__, bar);
+	return 1;
 #else
 	// TODO: add user-policy here
 	return 0;
