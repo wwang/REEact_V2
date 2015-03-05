@@ -17,6 +17,7 @@
 #include "flexpth_cond.h"
 #include "flexpth_thread_keeper.h"
 #include "flexpth_env_var.h"
+#include "flexpth_omp_load_balance.h"
 
 /*
  * flex-pthread initialization
@@ -35,7 +36,7 @@ int flexpth_init(void *data)
 		return 1;
 	}
 
-	fh = (struct flexpth_data*)malloc(sizeof(struct flexpth_data));
+	fh = (struct flexpth_data*)calloc(1, sizeof(struct flexpth_data));
 
 	if(fh == NULL){
 		LOGERRX("Flexpth init: unable to create flex-pthead data: ");
@@ -65,6 +66,12 @@ int flexpth_init(void *data)
 	 */
 	flexpth_gomp_barrier_support_init(data);
 
+	/*
+	 * load balance OpenMP if required by user
+	 */
+	if(fh->enable_omp_load_balancing)
+		flexpth_omp_load_balance_init(data);
+
 	return 0;
 }
 
@@ -90,6 +97,7 @@ int flexpth_cleanup(void *data)
 	/*
 	 * per component cleanup
 	 */
+	flexpth_omp_load_balance_cleanup(data);
 	flexpth_cond_internal_cleanup(data);
 	flexpth_mutex_internal_cleanup(data);
 	flexpth_barrier_internal_cleanup(data);

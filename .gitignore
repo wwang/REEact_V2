@@ -1,4 +1,6 @@
-# Object files
+# git repo dir
+git/
+#Object files
 *.o
 
 # Libraries

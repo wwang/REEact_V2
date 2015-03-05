@@ -149,6 +149,33 @@ int flexpth_parse_omp_thread_cnt(struct reeact_data *rh)
 
 
 /*
+ * parsing the GNU Openmp load balancing flag
+ * Input parameters:
+ *       rh: REEact data
+ *
+ * Return values:
+ *      0: success
+ */
+int flexpth_parse_omp_load_balancing(struct reeact_data *rh)
+{
+	char *env;
+	struct flexpth_data *fh = (struct flexpth_data*)rh->policy_data;
+
+	fh->enable_omp_load_balancing = 0;
+	env = getenv(FLEXPTH_OMP_LOAD_BALANCING_ENV);
+
+	if(env != NULL)
+		/* environment variable not set */
+		fh->enable_omp_load_balancing = atoi(env);
+
+	DPRINTF("OpenMP load balancing enabled: %d\n", 
+		fh->enable_omp_load_balancing); 
+
+	return 0;
+}
+
+
+/*
  * Read and parse the environment variables
  */
 int flexpth_parse_env_vars(void *data)
@@ -162,6 +189,7 @@ int flexpth_parse_env_vars(void *data)
 	flexpth_parse_core_list((struct reeact_data*)data);
 	flexpth_parse_main_thread_handling((struct reeact_data*)data);
 	flexpth_parse_omp_thread_cnt((struct reeact_data*)data);
+	flexpth_parse_omp_load_balancing((struct reeact_data*)data);
 
 	return 0;
 }

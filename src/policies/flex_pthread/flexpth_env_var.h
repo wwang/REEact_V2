@@ -27,6 +27,10 @@
  * OpenMP thread count variable
  */
 #define OPENMP_THREAD_COUNT_ENV "OMP_NUM_THREADS"
+/*
+ * Enable GNU OpenMP load balancing variable
+ */
+#define FLEXPTH_OMP_LOAD_BALANCING_ENV "FLEXPTH_OMP_LOAD"
 
 /*
  * END: names of the environment variables

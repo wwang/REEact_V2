@@ -64,8 +64,11 @@ int fastsync_barrier_wait(fastsync_barrier *barrier)
 	if(count == barrier->total_count){
 		// wait for the parent barrier
 		if(barrier->parent_bar)
-			fastsynt_barrier_wait_interproc(barrier->parent_bar, 
-							count);
+			ret_val = fastsynt_barrier_wait_interproc(barrier->parent_bar, 
+								  count);
+		else
+			/* this is the last thread reaching the barrier */
+			ret_val = PTHREAD_BARRIER_SERIAL_THREAD;
 		
 		// this is the last thread hitting the barrier
 		// clear the waiting count and increment sequence count
@@ -79,7 +82,6 @@ int fastsync_barrier_wait(fastsync_barrier *barrier)
 			sys_futex(&barrier->seq, FUTEX_WAKE_PRIVATE,
 				  INT_MAX, NULL, NULL, 0);
 #endif
-		ret_val = PTHREAD_BARRIER_SERIAL_THREAD;
 		//break;
 		return ret_val;
 	}
@@ -125,16 +127,19 @@ int fastsynt_barrier_wait_interproc(fastsync_barrier *barrier, int inc_count)
 	if(count == barrier->total_count){
 		// wait at parent barrier
 		if(barrier->parent_bar){
-			fastsynt_barrier_wait_interproc(barrier->parent_bar,
-							count);
+			ret_val = 
+				fastsynt_barrier_wait_interproc(barrier->parent_bar,
+								count);
 		}
+		else
+			/* this is the last thread reaching the barrier*/
+			ret_val = PTHREAD_BARRIER_SERIAL_THREAD;
 		// this is the last thread hitting the barrier
 		// clear the waiting count and increment sequence count
 		// these operations should be done simultaneously 
 		gcc_barrier();
 		barrier->reset = barrier->seq + 1;
 		gcc_barrier();
-		ret_val = 0;
 		//break;
 		return ret_val;
 	}

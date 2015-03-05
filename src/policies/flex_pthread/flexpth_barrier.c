@@ -762,3 +762,257 @@ void flexpth_GOMP_barrier()
 
 /* 	return real_GOMP_barrier(); */
 /* } */
+
+
+int flexpth_gomp_barrier_init(void *bar, unsigned count)
+{
+	struct flexpth_gomp_barrier *barrier = bar;
+	struct flexpth_tree_barrier *tbar;
+	fastsync_barrier *root;
+	int ret_val;
+
+	//DPRINTF("init bar %p with count %d\n", bar, count);
+	if(barrier == NULL || count == 0)
+		return EINVAL;
+
+	/* 
+	 * GNU openmp tends to recreate the same barrier with the same count. In
+	 * this case there is no need to recreate the barrier.
+	 */
+	if(barrier->flag == FLEXPTH_GOMP_BARRIER_INITIALIZED_MAGIC){
+		tbar = barrier->tbar;
+		root = (fastsync_barrier*)(tbar->root);
+		if(root->total_count == count){
+			/* already initialized */
+			//DPRINTF("gomp barrier same count re-init: %p and %u\n", 
+			//	barrier, count);
+			return 0;
+		}
+	}
+	
+
+	/* 
+	 * create a new flex-pthread tree barrier and save the pointer
+	 * pthread_barrier_t *barrier
+	 */
+	ret_val = flexpth_tree_barrier_init((void*)reeact_handle, &tbar, NULL, 
+					    count);
+	if(ret_val != 0)
+		/*
+		 * some memory errors
+		 */
+		return ENOMEM;
+
+	barrier->flag = FLEXPTH_GOMP_BARRIER_INITIALIZED_MAGIC;
+	barrier->tbar = tbar;
+	
+	return 0;
+}
+
+/*
+ * GOMP barrier reinitialization.
+ * Return values:
+ *    0: success
+ *    1: re-initializing a non-flexpth barrier
+ */
+int flexpth_gomp_barrier_reinit(void *bar, unsigned count)
+{
+	struct flexpth_gomp_barrier *barrier = bar;
+	struct flexpth_tree_barrier *tbar;
+	fastsync_barrier *root;
+
+	//DPRINTF("re-init bar %p with count %d\n", bar, count);
+	if(barrier == NULL || count == 0)
+		return EINVAL;
+
+	/* 
+	 * GNU openmp tends to recreate the same barrier with the same count. In
+	 * this case there is no need to recreate the barrier.
+	 */
+	if(barrier->flag == FLEXPTH_GOMP_BARRIER_INITIALIZED_MAGIC){
+		tbar = barrier->tbar;
+		root = (fastsync_barrier*)(tbar->root);
+		root->total_count = count;
+		return 0;
+	}
+	
+	LOGERR("re-initializing a non-flexpth gomp barrier (%p)\n", bar);
+
+	return 1;
+}
+
+int flexpth_gomp_barrier_destroy(void *barrier)
+{
+	/* follow gomp's implementation, let it be empty */
+	return 0;
+}
+
+/*
+ * This is the actual wait function. Because GOMP has a different semantic for
+ * its barrier functions than pthread barrier, I have to wrap this function.
+ */
+int flexpth_gomp_barrier_internal_wait(void *gbar)
+{
+	struct flexpth_gomp_barrier *barrier = gbar;
+	struct flexpth_tree_barrier *tbar;
+	fastsync_barrier *bar;
+	int fidx, core_id;
+	int ret_val;
+		
+	if(barrier == NULL)
+		return EINVAL;
+
+	tbar = barrier->tbar;
+
+	switch(tbar->status){
+	case FLEXPTH_BARRIER_STATE_INVALID:
+		/*
+		 * barrier does not exist
+		 */
+		return EINVAL;
+	case FLEXPTH_BARRIER_STATE_NOT_READY:
+		/*
+		 * the barrier is called for the first time
+		 */
+		ret_val = flexpth_barrier_first_wait(tbar);
+		return ret_val;
+	case FLEXPTH_BARRIER_STATE_READY:
+		/*
+		 * the barrier is ready with all threads created
+		 */
+		/* bar = (fastsync_barrier*)tbar->func_tbars[self->fidx] */
+		/* 	[_core_to_list_map[self->core_id]]; */
+		fidx = barrier_idx >> 32;
+		core_id = barrier_idx & 0x00000000ffffffff;
+		bar = (fastsync_barrier*)tbar->func_tbars[fidx]
+			[_core_to_list_map[core_id]];
+		ret_val = fastsync_barrier_wait(bar);
+		return ret_val;
+	default:
+		/*
+		 * barrier has unknown status
+		 */
+		return EINVAL;
+	}
+	
+	/* unreachable */
+}
+
+int flexpth_gomp_barrier_wait(void *bar)
+{
+	/* use the normal barrier wait for now */
+	flexpth_gomp_barrier_internal_wait(bar);
+	return 0;
+}
+
+int flexpth_gomp_team_barrier_wait(void *bar)
+{
+	/* use the normal barrier wait for now */
+	flexpth_gomp_barrier_internal_wait(bar);
+	return 0;
+}
+
+
+int flexpth_gomp_barrier_wait_start(void *bar, unsigned int *ret_val)
+{
+	/*
+	 * because the wait_start and wait_end is only called once separately,
+	 * and the use is majorly for a critical update of some flags by the
+	 * last waiting thread, I treat the wait_start and wait_end as two 
+	 * barrier waits
+	 */
+	*ret_val = flexpth_gomp_barrier_internal_wait(bar);
+	if(*ret_val == PTHREAD_BARRIER_SERIAL_THREAD){
+		/* 
+		 * following the semantic of GNU OpenMP, the last bit of
+		 * ret_val should be 1 if this is the last thread reaching
+		 * the barrier
+		 */
+		*ret_val = 1;
+	}
+	else if(*ret_val != 0){
+		/* something wrong here */
+		LOGERR("barrier (%p) wait error\n", bar);
+	}
+	
+	return 0;
+	
+}
+
+int flexpth_gomp_barrier_wait_end(void *bar, unsigned int state)
+{
+	/* as mentioned the barrier wait start, treat this as a normal wait */ 
+	flexpth_gomp_barrier_internal_wait(bar);
+	return 0;
+}
+
+int flexpth_gomp_team_barrier_wait_end(void *bar, unsigned int state)
+{
+	/* as mentioned the barrier wait start, treat this as a normal wait */
+	flexpth_gomp_barrier_internal_wait(bar);
+	return 0;
+}
+
+int flexpth_gomp_barrier_last_thread(unsigned int state, int *ret_val)
+{
+	/* 
+	 * following the semantic of GNU OpenMP, the last bit of
+	 * ret_val should be 1 if this is the last thread reaching
+	 * the barrier
+	 */
+	*ret_val = state & 1;
+	return 0;
+}
+
+int flexpth_gomp_barrier_wait_last(void *bar)
+{
+	/* TODO: Add implementation */
+	LOGERR("function %s is not implemented\n", __FUNCTION__);
+	return 1;
+}
+
+int flexpth_gomp_team_barrier_wake(void *bar, int count)
+{
+	/* TODO: Add implementation */
+	LOGERR("function %s is not implemented\n", __FUNCTION__);
+	return 1;
+}
+
+int flexpth_gomp_team_barrier_set_task_pending(void *bar)
+{
+	struct flexpth_gomp_barrier *barrier = bar;
+	barrier->state |= 1;
+
+	return 0;
+}
+
+int flexpth_gomp_team_barrier_clear_task_pending(void *bar)
+{
+	struct flexpth_gomp_barrier *barrier = bar;
+	barrier->state &= ~1;
+
+	return 0;
+}
+
+int flexpth_gomp_team_barrier_set_waiting_for_tasks(void *bar)
+{
+	struct flexpth_gomp_barrier *barrier = bar;
+	barrier->state |= 2;
+
+	return 0;
+}
+
+int flexpth_gomp_team_barrier_waiting_for_tasks(void *bar, int *ret_val)
+{
+	struct flexpth_gomp_barrier *barrier = bar;
+	*ret_val = ((barrier->state & 2) != 0);
+
+	return 0;
+}
+
+int flexpth_gomp_team_barrier_done(void *bar, unsigned int state)
+{
+	/* TODO: Add implementation */
+	LOGERR("function %s is not implemented\n", __FUNCTION__);
+	return 1;
+}

@@ -77,6 +77,18 @@ struct flexpth_all_barriers{
 };
 
 /*
+ * because gomp tends to re-initialized the same barrier with the same count
+ * over and over again, I created a new barrier wrapper structure to remember
+ * whether the barrier has been initialized before.
+ */
+#define FLEXPTH_GOMP_BARRIER_INITIALIZED_MAGIC 87653214
+struct flexpth_gomp_barrier{
+	int flag; // whether the barrier is initialized
+	int state; // task waiting/pending states, see the gomp implementation
+	struct flexpth_tree_barrier *tbar; // the actual barrier
+};
+
+/*
  * Initialization function for flex_pthread barrier component.
  * flexpth_barrier_internal_init should be called with flexpth_init to
  * acquire information about the machine topology form REEact.

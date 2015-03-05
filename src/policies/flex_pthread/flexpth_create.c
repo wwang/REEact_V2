@@ -142,7 +142,11 @@ int flexpth_create_thread(pthread_t *thread, pthread_attr_t *attr,
 	/*
 	 * add thread to thread info
 	 */
-	core_id = assign_core((struct flexpth_core_list*)fh->core_list);
+	if(fh->enable_omp_load_balancing)
+		core_id = 
+			assign_core((struct flexpth_core_list*)fh->omp_core_list);
+	else
+		core_id = assign_core((struct flexpth_core_list*)fh->core_list);
 	ret_val = flexpth_keeper_add_thread((void*)rh, core_id, 
 					    (void*)start_routine, &tinfo);
 

@@ -14,40 +14,26 @@
 #include <dlfcn.h>
 
 #include "gomp_hooks.h"
+#include "gomp_hooks_originals.h"
+#include ".././../utils/reeact_utils.h"
 
 /*
- * real gomp functions
+ * real gomp function types
  */
 typedef void (*GOMP_barrier_type)(void);
 
-
+/*
+ * real gomp functions
+ */ 
 GOMP_barrier_type real_GOMP_barrier;
+
 
 /*
  * initialization function for REEact gomp hooks
  */
 int reeact_gomp_hooks_init(void *data)
 {
-	char *error = NULL;
-	int ret_val = 0;
-
-	/*
-	 * locate the original gomp functions
-	 */
-	dlerror();    // Clear any existing error
-	real_GOMP_barrier = (GOMP_barrier_type)dlsym(RTLD_NEXT, "GOMP_barrier");
-
-	if ((error = dlerror()) != NULL)  {
-		fprintf(stderr, "Error opening original gomp functions with "
-			"error :%s\n", error);
-		ret_val = REEACT_GOMP_HOOKS_ERR_LOAD_ORIGINAL_FUNCTION;
-		goto error;
-	}
-	
 	return 0;
-
- error:
-	return ret_val;
 }
 
 

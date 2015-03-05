@@ -28,6 +28,12 @@ struct flexpth_data{
 	 */
 	unsigned long long control_main_thr;  
 	int omp_thr_cnt; // the number of threads for OpenMP
+	int enable_omp_load_balancing; //  enable OpenMP load balancing or not
+	/*
+	 * core list for OpenMP threads, used when OpenMP load balancing is
+	 * enabled
+	 */
+	void *omp_core_list; 
 };
 
 /*
@@ -137,5 +143,21 @@ int flexpth_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *m,
  * GOMP barrier functions
  */
 void flexpth_GOMP_barrier();
+int flexpth_gomp_barrier_init(void *barrier, unsigned count);
+int flexpth_gomp_barrier_reinit(void *barrier, unsigned count);
+int flexpth_gomp_barrier_destroy(void *barrier);
+int flexpth_gomp_barrier_wait(void *barrier);
+int flexpth_gomp_team_barrier_wait(void *barrier);
+int flexpth_gomp_barrier_wait_start(void *bar, unsigned int *ret_val);
+int flexpth_gomp_barrier_wait_end(void *bar, unsigned int state);
+int flexpth_gomp_team_barrier_wait_end(void *bar, unsigned int state);
+int flexpth_gomp_barrier_last_thread(unsigned int state, int *ret_val);
+int flexpth_gomp_barrier_wait_last(void *bar);
+int flexpth_gomp_team_barrier_wake(void *bar, int count);
+int flexpth_gomp_team_barrier_set_task_pending(void *bar);
+int flexpth_gomp_team_barrier_clear_task_pending(void *bar);
+int flexpth_gomp_team_barrier_set_waiting_for_tasks(void *bar);
+int flexpth_gomp_team_barrier_waiting_for_tasks(void *bar, int *ret_val);
+int flexpth_gomp_team_barrier_done(void *bar, unsigned int state);
 
 #endif 
